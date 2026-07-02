@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>TXO サイト編集</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#07110f;color:#fff;font-family:system-ui,sans-serif}
+    button,input,select{font:inherit}.login{min-height:100vh;display:grid;place-items:center}.login>div{width:min(420px,90vw);padding:28px;border:1px solid #00d9bd;background:#061b18}
+    .login input{width:100%;margin:16px 0;padding:12px;background:#07110f;color:#fff;border:1px solid #27645c}.primary{background:#00e5c8;color:#001b18;border:0}
+    button{padding:9px 13px;border:1px solid #27645c;background:#07110f;color:#fff;cursor:pointer;border-radius:4px}
+    .app{display:none;height:100vh}.toolbar{height:58px;display:flex;align-items:center;gap:7px;padding:8px;border-bottom:1px solid #27645c;overflow-x:auto;white-space:nowrap}
+    .toolbar strong{margin-right:auto}.workspace{height:calc(100vh - 58px);display:grid;grid-template-columns:1fr 280px}.canvas{padding:12px;background:#222}
+    iframe{width:100%;height:100%;border:1px solid #00d9bd;background:#fff}.panel{padding:14px;border-left:1px solid #27645c;overflow:auto}.panel label{display:block;margin:12px 0 5px;font-size:12px;color:#9bbbb5}
+    .panel input,.panel select{width:100%;padding:9px;background:#061b18;color:#fff;border:1px solid #27645c}.hint{font-size:12px;color:#9bbbb5;line-height:1.6}
+    @media(max-width:800px){.workspace{grid-template-columns:1fr}.panel{position:fixed;right:0;bottom:0;width:100%;max-height:38vh;background:#07110f;z-index:3}}
+  </style>
+</head>
+<body>
+  <div class="login" id="login"><div><h1>管理者ログイン</h1><p>公開サイトを編集します。</p><input id="password" type="password" placeholder="管理者パスワード"><button class="primary" id="loginButton">ログイン</button><p id="loginError"></p></div></div>
+  <div class="app" id="app">
+    <div class="toolbar">
+      <strong>TXO ビジュアル編集</strong>
+      <button id="undo">1つ戻る</button><button id="move">ドラッグ移動</button>
+      <button data-add="text">文字追加</button><button data-add="image">画像追加</button><button data-add="video">動画追加</button>
+      <button data-add="section">セクション追加</button><button id="publish" class="primary">公開</button><button onclick="window.open('/','_blank')">公開画面</button>
+    </div>
+    <div class="workspace">
+      <div class="canvas"><iframe id="frame" src="/preview"></iframe></div>
+      <aside class="panel">
+        <h3>選択中の要素</h3><p class="hint" id="selectedName">画面内の編集したい場所をクリック</p>
+        <label>文字</label><input id="text">
+        <label>文字サイズ</label><input id="fontSize" placeholder="例: 32px">
+        <label>文字色</label><input id="color" type="color">
+        <label>背景色</label><input id="background" type="color">
+        <label>背景画像URL</label><input id="backgroundImage" placeholder="https://...">
+        <label>背景動画URL</label><input id="backgroundVideo" placeholder="https://...mp4">
+        <label>幅</label><input id="width" placeholder="例: 100% / 500px">
+        <label>高さ</label><input id="height" placeholder="例: 400px">
+        <label>内側余白</label><input id="padding" placeholder="例: 24px">
+        <label>角丸</label><input id="radius" placeholder="例: 8px">
+      </aside>
+    </div>
+  </div>
+  <input id="file" type="file" hidden>
+  <script>
+    const login=document.querySelector('#login'),app=document.querySelector('#app'),frame=document.querySelector('#frame');
+    let selected=null,moving=false,history=[];
+    const snapshot=()=>{if(selected)history.push({el:selected,html:selected.innerHTML,style:selected.style.cssText})};
+    document.querySelector('#loginButton').onclick=async()=>{const r=await fetch('/api/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password:password.value})});if(r.ok){login.style.display='none';app.style.display='block'}else loginError.textContent='ログインできませんでした'};
+    frame.onload=()=>{const d=frame.contentDocument;d.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();selected=e.target;selectedName.textContent=selected.tagName+' / '+(selected.textContent||'').slice(0,40);text.value=selected.children.length?'':selected.textContent||'';selected.style.outline='2px solid #00e5c8'},true);
+      d.addEventListener('pointerdown',e=>{if(!moving||!selected||e.target!==selected)return;snapshot();const x=e.clientX,y=e.clientY,l=parseFloat(selected.style.left)||0,t=parseFloat(selected.style.top)||0;selected.style.position='relative';const mm=v=>{selected.style.left=l+v.clientX-x+'px';selected.style.top=t+v.clientY-y+'px'};const up=()=>{d.removeEventListener('pointermove',mm);d.removeEventListener('pointerup',up)};d.addEventListener('pointermove',mm);d.addEventListener('pointerup',up)},true)};
+    const bind=(id,fn)=>document.querySelector('#'+id).onchange=e=>{if(!selected)return;snapshot();fn(e.target.value)};
+    bind('text',v=>selected.textContent=v);bind('fontSize',v=>selected.style.fontSize=v);bind('color',v=>selected.style.color=v);bind('background',v=>selected.style.backgroundColor=v);
+    bind('backgroundImage',v=>{selected.style.backgroundImage=`url("${v}")`;selected.style.backgroundSize='cover';selected.style.backgroundPosition='center'});
+    bind('backgroundVideo',v=>{selected.style.position='relative';selected.style.overflow='hidden';selected.insertAdjacentHTML('afterbegin',`<video autoplay muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0"><source src="${v}"></video>`)});
+    bind('width',v=>selected.style.width=v);bind('height',v=>selected.style.height=v);bind('padding',v=>selected.style.padding=v);bind('radius',v=>selected.style.borderRadius=v);
+    document.querySelector('#move').onclick=()=>{moving=!moving;move.textContent=moving?'移動中':'ドラッグ移動'};
+    document.querySelector('#undo').onclick=()=>{const h=history.pop();if(h){h.el.innerHTML=h.html;h.el.style.cssText=h.style}};
+    document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{const d=frame.contentDocument,target=selected||d.body,type=b.dataset.add;snapshot();if(type==='text')target.insertAdjacentHTML('beforeend','<div style="padding:16px;font-size:28px">新しい文字</div>');if(type==='section')target.insertAdjacentHTML('beforeend','<section style="min-height:240px;padding:32px"></section>');if(type==='image'||type==='video'){file.accept=type==='image'?'image/*':'video/*';file.dataset.type=type;file.click()}});
+    file.onchange=()=>{const f=file.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const target=selected||frame.contentDocument.body;if(file.dataset.type==='image')target.insertAdjacentHTML('beforeend',`<img src="${r.result}" style="max-width:100%">`);else target.insertAdjacentHTML('beforeend',`<video src="${r.result}" controls style="max-width:100%"></video>`)};r.readAsDataURL(f)};
+    document.querySelector('#publish').onclick=async()=>{const d=frame.contentDocument;d.querySelectorAll('[style*="outline"]').forEach(e=>e.style.outline='');const html='<!doctype html>\\n'+d.documentElement.outerHTML;const r=await fetch('/api/content',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({html})});alert(r.ok?'公開しました':'保存に失敗しました')};
+  </script>
+</body>
+</html>

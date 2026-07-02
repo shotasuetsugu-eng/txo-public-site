@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TX Operations株式会社</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:#090909;color:#e4e2dc;overflow-x:hidden}
+
+/* ── NAV ── */
+.nav{display:flex;justify-content:space-between;align-items:center;padding:0 2.5rem;height:52px;border-bottom:1px solid #2a2a2e;position:sticky;top:0;background:rgba(9,9,9,0.97);backdrop-filter:blur(12px);z-index:200}
+.logo{font-size:12px;font-weight:800;letter-spacing:.1em;color:#fff;text-transform:uppercase;cursor:pointer}
+.nav-tabs{display:flex;gap:0}
+.nav-tab{font-size:11px;color:#bcbcbc;text-decoration:none;letter-spacing:.04em;padding:0 1.1rem;height:52px;display:flex;align-items:center;border-bottom:2px solid transparent;cursor:pointer;transition:color .2s,border-color .2s;background:none;border-top:none;border-left:none;border-right:none}
+.nav-tab:hover{color:#c8c6c0}
+.nav-tab.active{color:#fff;border-bottom-color:#fff}
+.navcta{font-size:11px;padding:.4rem 1rem;border:1px solid #555;border-radius:4px;color:#fff;background:transparent;cursor:pointer;transition:border-color .2s,background .2s}
+.navcta:hover{border-color:#fff;background:rgba(255,255,255,.08)}
+
+/* ── PAGE SECTIONS ── */
+.page{display:none}
+.page.active{display:block}
+
+/* ── MEDIA PLACEHOLDER ── */
+.ph{position:relative;background:#111115;border:1px dashed #2a2a2e;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.4rem;text-align:center;padding:2rem}
+.ph i{font-size:28px;color:#c8c8c8}
+.ph-lbl{font-size:9px;color:#a8a8a8;letter-spacing:.12em;text-transform:uppercase;font-weight:600}
+.ph-hint{font-size:9px;color:#999;line-height:1.5;max-width:200px}
+
+/* ── STRIP ── */
+.strip{border-top:1px solid #2a2a2e;border-bottom:1px solid #2a2a2e;padding:.65rem 0;background:#0c0c0f;overflow:hidden}
+.strip-inner{display:flex;gap:2.5rem;white-space:nowrap;font-size:10px;color:#999;letter-spacing:.14em;text-transform:uppercase;animation:mq 28s linear infinite}
+@keyframes mq{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.sdot{color:#c8c8c8}
+
+/* ── COMMON ── */
+.sec{padding:4rem 2.5rem;border-top:1px solid #2a2a2e}
+.sec:first-child{border-top:none}
+.sec-alt{background:#0c0c0f}
+.lbl{font-size:10px;letter-spacing:.2em;color:#c8c8c8;text-transform:uppercase;margin-bottom:.6rem;font-weight:500}
+.ttl{font-size:clamp(1.4rem,2.5vw,2rem);font-weight:800;color:#fff;letter-spacing:-.03em;line-height:1.15;margin-bottom:.75rem}
+.body-txt{font-size:13px;line-height:1.9;color:#c8c8c8}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center}
+
+/* ── PAGE: HOME ── */
+.hero{position:relative;min-height:88vh;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden}
+.hero-bg .ph{height:100%;min-height:88vh;border:none;border-radius:0;position:absolute;inset:0}
+.hero-bg .ph i{font-size:52px;color:#1a1a1e}
+.hero-bg .ph-lbl{font-size:12px;color:#222228}
+.hero-bg .ph-hint{max-width:280px;font-size:10px;color:#1c1c20}
+.hero-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(9,9,9,.96) 0%,rgba(9,9,9,.2) 65%,transparent 100%)}
+.hero-content{position:relative;z-index:2;padding:3rem 2.5rem 2.5rem}
+.eyebrow{font-size:10px;letter-spacing:.2em;color:#999;text-transform:uppercase;margin-bottom:1rem}
+.hero h1{font-size:clamp(2.2rem,5vw,4.2rem);font-weight:900;line-height:1.05;letter-spacing:-.04em;color:#fff;max-width:680px;margin-bottom:1.2rem}
+.hero h1 em{font-style:normal;border-bottom:2px solid #fff}
+.hero-sub{font-size:14px;line-height:1.8;color:#bbb;max-width:460px;margin-bottom:2rem}
+.ctas{display:flex;gap:1rem;align-items:center}
+.btnp{padding:.65rem 1.75rem;background:#fff;color:#090909;border:none;border-radius:4px;font-size:13px;font-weight:700;cursor:pointer;transition:background .2s}
+.btnp:hover{background:#ddd}
+.btng{padding:.65rem 1.25rem;background:transparent;color:#c8c8c8;border:none;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:.4rem;transition:color .2s}
+.btng:hover{color:#fff}
+.hero-nums{display:flex;gap:2.5rem;margin-top:2.5rem;padding-top:2rem;border-top:1px solid rgba(255,255,255,.1)}
+.hn{font-size:1.6rem;font-weight:800;color:#fff;letter-spacing:-.03em;line-height:1}
+.hl{font-size:10px;color:#bcbcbc;margin-top:.25rem;letter-spacing:.04em}
+
+/* ── PAGE: TX & ROBOTS ── */
+.tx-tagline{font-size:clamp(1.5rem,3vw,2.2rem);font-weight:900;color:#fff;letter-spacing:-.04em;line-height:1.1;margin-bottom:.85rem}
+.tx-sub{font-size:13px;line-height:1.9;color:#c8c8c8;max-width:540px;margin-bottom:2.5rem}
+.tx-structure{display:grid;grid-template-columns:1fr auto 1fr;gap:1.25rem;align-items:center;margin-bottom:3rem}
+.tx-box{background:#111115;border:1px solid #2a2a2e;border-radius:10px;padding:1.5rem}
+.tx-box.hl{border-color:#a8a8a8}
+.tx-box-lbl{font-size:9px;letter-spacing:.14em;color:#b0b0b0;text-transform:uppercase;margin-bottom:.35rem}
+.tx-box-name{font-size:14px;font-weight:800;color:#fff;line-height:1.25;margin-bottom:.3rem}
+.tx-box-desc{font-size:11px;line-height:1.7;color:#b0b0b0}
+.tx-arrow{display:flex;flex-direction:column;align-items:center;gap:.25rem}
+.tx-arr-line{width:1px;height:26px;background:#2a2a2e}
+.tx-arr-lbl{font-size:9px;color:#a8a8a8;letter-spacing:.06em;text-align:center;line-height:1.4}
+.tx-arr-icon{font-size:12px;color:#999}
+
+/* ROBOTS */
+.robots-lbl{font-size:10px;letter-spacing:.2em;color:#c8c8c8;text-transform:uppercase;margin-bottom:1rem;font-weight:500}
+.robots{display:flex;flex-direction:column;gap:1px;background:#2a2a2e;border:1px solid #2a2a2e;border-radius:12px;overflow:hidden}
+.robot-row{display:grid;grid-template-columns:220px 1fr;background:#0d0d10;border-bottom:1px solid #2a2a2e;transition:background .2s}
+.robot-row:last-child{border-bottom:none}
+.robot-row:hover{background:#111115}
+.robot-media .ph{height:100%;min-height:158px;border:none;border-right:1px solid #2a2a2e;border-radius:0}
+.robot-media .ph i{font-size:18px;color:#222228}
+.robot-media .ph-lbl{font-size:8px;color:#282828}
+.robot-media .ph-hint{font-size:8px;color:#1e1e22}
+.robot-body{padding:1.5rem 1.75rem}
+.robot-num{font-size:9px;color:#999;letter-spacing:.12em;font-weight:600;margin-bottom:.15rem}
+.robot-name{font-size:18px;font-weight:900;color:#fff;letter-spacing:-.04em;line-height:1;margin-bottom:.15rem}
+.robot-gen{font-size:10px;color:#a8a8a8;letter-spacing:.04em;margin-bottom:.65rem}
+.robot-usecase{font-size:10px;color:#b0b0b0;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.3rem}
+.robot-desc{font-size:12px;line-height:1.75;color:#bcbcbc;max-width:400px}
+.robot-tags{display:flex;gap:.3rem;margin-top:.6rem;flex-wrap:wrap}
+.rtag{font-size:9px;padding:.1rem .45rem;border:1px solid #252528;border-radius:3px;color:#a8a8a8}
+.robot-status-row{display:flex;align-items:center;justify-content:space-between;margin-top:.75rem;padding-top:.6rem;border-top:1px solid #111115}
+.rstatus{font-size:10px;padding:.15rem .5rem;border-radius:3px;font-weight:600}
+.rstatus.live{background:rgba(255,255,255,.05);color:#c8c8c8;border:1px solid #2a2a2e}
+.rstatus.coming{color:#999;border:1px solid #1e1e22}
+.robot-venue{font-size:10px;color:#999}
+
+/* ROLE CALLOUT */
+.role-callout{margin-top:2.5rem;background:#0f0f12;border:1px solid #222228;border-radius:10px;padding:1.75rem 2rem;display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.5rem}
+.role-item{display:flex;gap:.65rem;align-items:flex-start}
+.role-icon{font-size:16px;color:#b0b0b0;flex-shrink:0;margin-top:1px}
+.role-h{font-size:11px;font-weight:700;color:#e0deda;margin-bottom:.2rem}
+.role-b{font-size:10px;line-height:1.65;color:#b0b0b0}
+
+/* VIDEO BAND */
+.video-band{height:300px;background:#070709;border-top:1px solid #2a2a2e;border-bottom:1px solid #2a2a2e}
+.video-band .ph{height:100%;border:none;border-radius:0}
+.video-band .ph i{font-size:40px;color:#1a1a1e}
+.video-band .ph-lbl{font-size:11px;color:#222228}
+.video-play{width:48px;height:48px;border-radius:50%;border:1px solid #2a2a2e;display:flex;align-items:center;justify-content:center;font-size:18px;color:#a8a8a8;margin-bottom:.5rem}
+
+/* ── PAGE: ABOUT ── */
+.ford-card{background:#0e0e12;border:1px solid #2a2a2e;border-radius:12px;padding:2rem;min-height:190px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+.ford-card::before{content:'Model T';position:absolute;bottom:-8px;right:-6px;font-size:3.8rem;font-weight:900;color:#111115;letter-spacing:-.04em;line-height:1;pointer-events:none}
+.ford-yr{font-size:10px;color:#a8a8a8;letter-spacing:.12em;text-transform:uppercase}
+.ford-q{font-size:1.1rem;font-weight:700;color:#fff;line-height:1.3;margin-top:.65rem}
+.ford-a{font-size:11px;color:#a8a8a8;margin-top:.5rem}
+
+/* CEO */
+.ceo-grid{display:grid;grid-template-columns:1fr 1.3fr;gap:3rem;align-items:start}
+.ceo-card{background:#111115;border:1px solid #2a2a2e;border-radius:12px;overflow:hidden}
+.ceo-photo .ph{height:160px;border:none;border-radius:0;border-bottom:1px solid #2a2a2e}
+.ceo-photo .ph i{font-size:24px;color:#1e1e22}
+.ceo-photo .ph-lbl{font-size:8px;color:#1e1e22}
+.ceo-info{padding:1.4rem}
+.ceo-av-row{display:flex;align-items:center;gap:.7rem;margin-bottom:.85rem}
+.ceo-av{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.07);border:1px solid #333;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0}
+.ceo-name{font-size:13px;font-weight:700;color:#fff}
+.ceo-t{font-size:10px;color:#b0b0b0;letter-spacing:.03em}
+.ceo-msg{font-size:12px;line-height:1.85;color:#bcbcbc;border-left:2px solid #2a2a2e;padding-left:.8rem}
+.career{display:flex;flex-direction:column;gap:.75rem;margin-top:1rem}
+.ci{display:flex;gap:.55rem;align-items:flex-start}
+.cdot{width:5px;height:5px;border-radius:50%;background:#fff;margin-top:.32rem;flex-shrink:0}
+.cco{font-size:11px;font-weight:600;color:#aaa}
+.crole{font-size:10px;color:#a8a8a8;margin-top:.08rem}
+.vals{display:grid;grid-template-columns:1fr 1fr;gap:.55rem;margin-top:1rem}
+.val{background:#111115;border:1px solid #2a2a2e;border-radius:7px;padding:.75rem}
+.val-h{font-size:11px;font-weight:600;color:#e0deda;margin-bottom:.18rem}
+.val-b{font-size:10px;line-height:1.6;color:#b0b0b0}
+
+/* OFFICE BAND */
+.office-band{height:240px;background:#070709;border-top:1px solid #2a2a2e;border-bottom:1px solid #2a2a2e}
+.office-band .ph{height:100%;border:none;border-radius:0}
+.office-band .ph i{font-size:34px;color:#1a1a1e}
+.office-band .ph-lbl{font-size:11px;color:#1e1e22}
+
+/* NUMS */
+.nums-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#2a2a2e;border:1px solid #2a2a2e;border-radius:10px;overflow:hidden;margin-top:2rem}
+.num-card{background:#0d0d10;padding:1.4rem 1rem;text-align:center}
+.num-val{font-size:1.5rem;font-weight:800;color:#fff;letter-spacing:-.03em;line-height:1}
+.num-lbl{font-size:10px;color:#b0b0b0;margin-top:.25rem;letter-spacing:.04em}
+
+/* ── PAGE: CULTURE ── */
+.ben-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.55rem;margin-top:2rem}
+.ben-item{background:#0d0d10;border:1px solid #2a2a2e;border-radius:7px;padding:.9rem 1rem;display:flex;gap:.6rem;align-items:flex-start}
+.ben-item i{font-size:14px;color:#bcbcbc;flex-shrink:0;margin-top:2px}
+.ben-h{font-size:11px;font-weight:600;color:#e0deda;margin-bottom:.15rem}
+.ben-b{font-size:10px;line-height:1.6;color:#b0b0b0}
+
+.staff-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#2a2a2e;border:1px solid #2a2a2e;border-radius:10px;overflow:hidden;margin-top:2rem}
+.staff-card{background:#0d0d10}
+.staff-photo .ph{height:130px;border:none;border-radius:0;border-bottom:1px solid #2a2a2e}
+.staff-photo .ph i{font-size:22px;color:#1a1a1e}
+.staff-photo .ph-lbl{font-size:8px;color:#1a1a1e}
+.staff-info{padding:.85rem 1rem}
+.staff-name{font-size:11px;font-weight:700;color:#e0deda;margin-bottom:.1rem}
+.staff-role{font-size:10px;color:#a8a8a8;margin-bottom:.3rem}
+.staff-comment{font-size:10px;line-height:1.6;color:#b0b0b0;font-style:italic}
+
+.path{display:flex;gap:0;margin-top:2rem;overflow:hidden;border:1px solid #2a2a2e;border-radius:10px}
+.path-step{flex:1;padding:1.1rem .9rem;background:#0d0d10;border-right:1px solid #2a2a2e}
+.path-step:last-child{border-right:none}
+.path-num{font-size:9px;color:#c8c8c8;font-weight:600;letter-spacing:.08em;margin-bottom:.3rem}
+.path-role{font-size:11px;font-weight:700;color:#fff;margin-bottom:.15rem}
+.path-yr{font-size:10px;color:#a8a8a8}
+
+/* ── PAGE: RECRUIT ── */
+.flow{display:flex;align-items:center;gap:.35rem;margin-top:2rem;flex-wrap:wrap}
+.flow-step{background:#0d0d10;border:1px solid #2a2a2e;border-radius:5px;padding:.6rem .85rem;font-size:10px;color:#bcbcbc}
+.flow-step strong{display:block;font-size:11px;font-weight:600;color:#fff;margin-bottom:.1rem}
+.flow-arr{color:#c8c8c8;font-size:12px;flex-shrink:0}
+
+.job-list{display:flex;flex-direction:column;gap:1px;background:#2a2a2e;border-radius:10px;overflow:hidden;margin-top:2rem}
+.job-row{display:flex;align-items:center;justify-content:space-between;padding:.95rem 1.25rem;background:#0d0d10;cursor:pointer;transition:background .15s}
+.job-row:hover{background:#111115}
+.job-t{font-size:13px;font-weight:600;color:#e0deda}
+.job-m{font-size:10px;color:#999;margin-top:.1rem}
+.badge{font-size:10px;padding:.12rem .5rem;border:1px solid #222228;border-radius:3px;color:#a8a8a8;white-space:nowrap}
+.badge.open{border-color:rgba(255,255,255,.2);color:#aaa}
+
+/* ── PAGE: COMPANY ── */
+.co-table{width:100%;margin-top:1.5rem;border-collapse:collapse}
+.co-table tr{border-bottom:1px solid #2a2a2e}
+.co-table td{padding:.7rem 0;font-size:12px;vertical-align:top}
+.co-table td:first-child{color:#bcbcbc;width:32%}
+.co-table td:last-child{color:#bbb}
+
+/* ── FOOTER ── */
+.footer{border-top:1px solid #2a2a2e;padding:1.75rem 2.5rem;display:flex;align-items:center;justify-content:space-between}
+.footer-l{font-size:10px;color:#999}
+.footer-links{display:flex;gap:1.5rem}
+.footer-links a{font-size:10px;color:#999;text-decoration:none;transition:color .2s}
+.footer-links a:hover{color:#c8c8c8}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="logo" onclick="showPage('home')">TX Operations株式会社</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('home')">HOME</button>
+    <button class="nav-tab" onclick="showPage('robots')">TX &amp; ロボット</button>
+    <button class="nav-tab" onclick="showPage('about')">会社について</button>
+    <button class="nav-tab" onclick="showPage('culture')">カルチャー</button>
+    <button class="nav-tab" onclick="showPage('recruit')">採用情報</button>
+    <button class="nav-tab" onclick="showPage('company')">会社概要</button>
+  </div>
+  <button class="navcta" onclick="showPage('recruit')">応募する</button>
+</nav>
+
+<!-- ══ PAGE: HOME ══ -->
+<div id="page-home" class="page active">
+
+  <!-- ① HERO -->
+  <section class="hero">
+    <div class="hero-bg">
+      <div class="ph" style="position:absolute;inset:0;height:100%">
+        <i class="ti ti-video"></i>
+        <div class="ph-lbl">① ヒーロー動画 / 静止画</div>
+        <div class="ph-hint">GHOSTがバックヤードで稼働する映像<br>または物流倉庫全景<br>16:9 · 1920×1080以上 · 自動再生推奨</div>
+      </div>
+    </div>
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <div class="eyebrow">TX Operations株式会社 — 2025.08.01 始動</div>
+      <h1>ロボットが、<br><em>インフラになる日</em>まで。</h1>
+      <p class="hero-sub">Telexistenceが開発した最先端のAIロボットを社会へ実装する専門集団。小売・物流・データ収集の現場で、技術を確かな実績に変え続けます。</p>
+      <div class="ctas">
+        <button class="btnp" onclick="showPage('recruit')">採用情報を見る</button>
+        <button class="btng" onclick="showPage('robots')">私たちの仕事を知る <i class="ti ti-arrow-right" style="font-size:12px"></i></button>
+      </div>
+      <div class="hero-nums">
+        <div><div class="hn">3</div><div class="hl">コア事業領域</div></div>
+        <div><div class="hn">4</div><div class="hl">専門チーム</div></div>
+        <div><div class="hn">24/7</div><div class="hl">現場稼働</div></div>
+        <div><div class="hn">FamilyMart · 7-Eleven</div><div class="hl">主要展開先</div></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="strip">
+    <div class="strip-inner">
+      <span>TX GHOST</span><span class="sdot">◆</span><span>Smart Stock V2</span><span class="sdot">◆</span><span>Logi Robot</span><span class="sdot">◆</span><span>Astra</span><span class="sdot">◆</span><span>Retail</span><span class="sdot">◆</span><span>Logistics</span><span class="sdot">◆</span><span>Data Collection</span><span class="sdot">◆</span><span>Unproven → Proven</span><span class="sdot">◆</span>
+      <span>TX GHOST</span><span class="sdot">◆</span><span>Smart Stock V2</span><span class="sdot">◆</span><span>Logi Robot</span><span class="sdot">◆</span><span>Astra</span><span class="sdot">◆</span><span>Retail</span><span class="sdot">◆</span><span>Logistics</span><span class="sdot">◆</span><span>Data Collection</span><span class="sdot">◆</span><span>Unproven → Proven</span><span class="sdot">◆</span>
+    </div>
+  </div>
+
+  <!-- HOME 概要カード -->
+  <section class="sec" style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#2a2a2e;border-top:none;padding:0">
+    <div style="background:#0d0d10;padding:2rem 1.75rem;cursor:pointer" onclick="showPage('robots')">
+      <div class="lbl">TX &amp; ロボット</div>
+      <div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:.5rem">TXが生み出すロボットを<br>世界に証明する</div>
+      <div style="font-size:12px;color:#bcbcbc;line-height:1.7">GHOST · Smart Stock V2 · Logi Robot · Astra</div>
+      <div style="font-size:11px;color:#a8a8a8;margin-top:1rem">詳しく見る →</div>
+    </div>
+    <div style="background:#0d0d10;padding:2rem 1.75rem;border-left:1px solid #2a2a2e;border-right:1px solid #2a2a2e;cursor:pointer" onclick="showPage('about')">
+      <div class="lbl">会社について</div>
+      <div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:.5rem">フォードの精神を<br>ロボットで再現する</div>
+      <div style="font-size:12px;color:#bcbcbc;line-height:1.7">Model T Operationsから TX Operationsへ</div>
+      <div style="font-size:11px;color:#a8a8a8;margin-top:1rem">詳しく見る →</div>
+    </div>
+    <div style="background:#0d0d10;padding:2rem 1.75rem;cursor:pointer" onclick="showPage('recruit')">
+      <div class="lbl">採用情報</div>
+      <div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:.5rem">一緒に、<br>現場を変えよう</div>
+      <div style="font-size:12px;color:#bcbcbc;line-height:1.7">未経験・異業種歓迎。現場で考え動ける人を求めています</div>
+      <div style="font-size:11px;color:#a8a8a8;margin-top:1rem">求人を見る →</div>
+    </div>
+  </section>
+
+  <!-- ロボットラインアップ ティーザー -->
+  <section class="sec sec-alt">
+    <div class="lbl">Our Robots</div>
+    <div class="ttl">TXが開発し、私たちが動かす。</div>
+    <p class="body-txt" style="max-width:520px;margin-bottom:2rem">Telexistenceが開発した4つの機体を、コンビニ・物流倉庫・データ収集の現場で日々稼働させています。</p>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#2a2a2e;border:1px solid #2a2a2e;border-radius:10px;overflow:hidden">
+      <div style="background:#0d0d10;padding:1.5rem 1.25rem">
+        <div style="font-size:9px;color:#888;letter-spacing:.1em;margin-bottom:.5rem">RETAIL</div>
+        <div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:.4rem">TX GHOST</div>
+        <div style="font-size:10px;color:#a8a8a8;line-height:1.6">飲料補充の自動化</div>
+      </div>
+      <div style="background:#0d0d10;padding:1.5rem 1.25rem">
+        <div style="font-size:9px;color:#888;letter-spacing:.1em;margin-bottom:.5rem">RETAIL</div>
+        <div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:.4rem">Smart Stock V2</div>
+        <div style="font-size:10px;color:#a8a8a8;line-height:1.6">データ在庫管理</div>
+      </div>
+      <div style="background:#0d0d10;padding:1.5rem 1.25rem">
+        <div style="font-size:9px;color:#888;letter-spacing:.1em;margin-bottom:.5rem">LOGISTICS</div>
+        <div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:.4rem">Logi Robot</div>
+        <div style="font-size:10px;color:#a8a8a8;line-height:1.6">倉庫の自動積み付け</div>
+      </div>
+      <div style="background:#0d0d10;padding:1.5rem 1.25rem">
+        <div style="font-size:9px;color:#888;letter-spacing:.1em;margin-bottom:.5rem">NEXT GEN</div>
+        <div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:.4rem">Astra</div>
+        <div style="font-size:10px;color:#a8a8a8;line-height:1.6">生成AIヒューマノイド</div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:#a8a8a8;margin-top:1.25rem;cursor:pointer" onclick="showPage('robots')">すべてのロボットを見る →</div>
+  </section>
+
+  <!-- 数字で見るTXO -->
+  <section class="sec">
+    <div class="lbl">Numbers</div>
+    <div class="ttl" style="margin-bottom:1.5rem">数字で見る、TX Operations</div>
+    <div class="nums-grid">
+      <div class="num-card"><div class="num-val">3</div><div class="num-lbl">コア事業領域</div></div>
+      <div class="num-card"><div class="num-val">4</div><div class="num-lbl">専門チーム</div></div>
+      <div class="num-card"><div class="num-val">24/7</div><div class="num-lbl">現場稼働体制</div></div>
+      <div class="num-card"><div class="num-val">2025.08</div><div class="num-lbl">新体制始動</div></div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-l">© 2025 TX Operations株式会社</div>
+    <div class="footer-links">
+      <a href="#">プライバシーポリシー</a>
+      <a href="#">お問い合わせ</a>
+      <a href="https://tx-inc.com/ja/" target="_blank">Telexistence株式会社 →</a>
+    </div>
+  </footer>
+</div>
+
+<!-- ══ PAGE: TX & ROBOTS ══ -->
+<div id="page-robots" class="page">
+  <section class="sec" style="border-top:none">
+    <div class="lbl">TX × TX Operations</div>
+    <div class="tx-tagline">TXが生み出すロボットを、<br>世界に証明するのが私たちだ。</div>
+    <p class="tx-sub">Telexistence株式会社（TX）は、ハードウェア・ソフトウェア・AIを一貫して自社開発する世界最先端のロボティクス企業。日本スタートアップ大賞2025「内閣総理大臣賞」受賞。TX Operationsはそのロボットを研究室から現場へ持ち込み、コンビニ・物流・データ収集現場で日々稼働させる実装専門チームです。</p>
+    <div class="tx-structure">
+      <div class="tx-box">
+        <div class="tx-box-lbl">Parent Company</div>
+        <div class="tx-box-name">Telexistence株式会社（TX）</div>
+        <div class="tx-box-desc">ロボット設計・製造・AI開発<br>ソフトウェア・遠隔操作技術<br>シリーズB 約230億円調達</div>
+      </div>
+      <div class="tx-arrow">
+        <div class="tx-arr-line"></div>
+        <div class="tx-arr-icon"><i class="ti ti-arrow-down"></i></div>
+        <div class="tx-arr-lbl">ロボット供給</div>
+        <div class="tx-arr-line"></div>
+        <div class="tx-arr-icon" style="transform:rotate(180deg)"><i class="ti ti-arrow-down"></i></div>
+        <div class="tx-arr-lbl">現場データ<br>フィードバック</div>
+        <div class="tx-arr-line"></div>
+      </div>
+      <div class="tx-box hl">
+        <div class="tx-box-lbl">Subsidiary — We Are Here</div>
+        <div class="tx-box-name">TX Operations株式会社</div>
+        <div class="tx-box-desc">ロボット運用・保守・管理<br>現場展開・データ収集<br>2025年8月 新体制始動</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ② ロボット機体 -->
+  <section class="sec sec-alt">
+    <div class="robots-lbl">TX製ロボット — 私たちが動かす機体たち</div>
+    <div class="robots">
+      <div class="robot-row">
+        <div class="robot-media"><div class="ph" style="min-height:165px"><i class="ti ti-camera"></i><div class="ph-lbl">② GHOST 写真</div><div class="ph-hint">機体正面 or 稼働中<br>4:3推奨</div></div></div>
+        <div class="robot-body">
+          <div class="robot-num">ROBOT 01</div>
+          <div class="robot-name">TX GHOST</div>
+          <div class="robot-gen">現行 · Retail</div>
+          <div class="robot-usecase">コンビニ飲料補充 · バックヤード自動化</div>
+          <div class="robot-desc">店舗バックヤードの冷蔵環境で飲料補充業務を自動化。AIによる自律制御と遠隔操作のハイブリッドで欠品リスクを最小化する。</div>
+          <div class="robot-tags"><span class="rtag">AI自律制御</span><span class="rtag">遠隔操作</span><span class="rtag">改修不要設置</span></div>
+          <div class="robot-status-row"><span class="rstatus live">稼働中</span><div class="robot-venue">FamilyMart · 7-Eleven · Lawson</div></div>
+        </div>
+      </div>
+      <div class="robot-row">
+        <div class="robot-media"><div class="ph" style="min-height:152px"><i class="ti ti-camera"></i><div class="ph-lbl">② Smart Stock V2</div><div class="ph-hint">棚スキャン中 or<br>デジタル棚ショット</div></div></div>
+        <div class="robot-body">
+          <div class="robot-num">ROBOT 02</div>
+          <div class="robot-name">Smart Stock V2</div>
+          <div class="robot-gen">現行 · Retail</div>
+          <div class="robot-usecase">スマートシェルフ · データドリブン在庫管理</div>
+          <div class="robot-desc">デジタル在庫棚と連動し補充業務をデータに基づく形へ再設計。ロボットが示すデータで店舗運営が変わる。</div>
+          <div class="robot-tags"><span class="rtag">在庫データ連動</span><span class="rtag">GHOST連携</span><span class="rtag">Retail DX</span></div>
+          <div class="robot-status-row"><span class="rstatus live">稼働中</span><div class="robot-venue">TAKANAWA GATEWAY他</div></div>
+        </div>
+      </div>
+      <div class="robot-row">
+        <div class="robot-media"><div class="ph" style="min-height:152px"><i class="ti ti-camera"></i><div class="ph-lbl">② Logi Robot</div><div class="ph-hint">アーム稼働中 or<br>AGF全景ショット</div></div></div>
+        <div class="robot-body">
+          <div class="robot-num">ROBOT 03</div>
+          <div class="robot-name">Logi Robot</div>
+          <div class="robot-gen">現行 · Logistics</div>
+          <div class="robot-usecase">物流倉庫 · デパレタイジング自動化</div>
+          <div class="robot-desc">アームロボット×AGFでパレットからコンベアへの投入・カート積み付けを自動化。非固定設計で既存倉庫に柔軟に導入できる。</div>
+          <div class="robot-tags"><span class="rtag">アームロボット</span><span class="rtag">AGF</span><span class="rtag">非固定・非フェンシング</span></div>
+          <div class="robot-status-row"><span class="rstatus live">稼働中</span><div class="robot-venue">センコー福岡XD</div></div>
+        </div>
+      </div>
+      <div class="robot-row">
+        <div class="robot-media"><div class="ph" style="min-height:152px"><i class="ti ti-camera"></i><div class="ph-lbl">② Astra コンセプト</div><div class="ph-hint">開発コンセプト画像<br>or 開発現場ショット</div></div></div>
+        <div class="robot-body">
+          <div class="robot-num">ROBOT 04</div>
+          <div class="robot-name">Astra</div>
+          <div class="robot-gen">次世代 · Humanoid</div>
+          <div class="robot-usecase">ヒューマノイド · 生成AI搭載 · 汎用店舗業務</div>
+          <div class="robot-desc">7-ElevenとTXが共同開発中の次世代ヒューマノイドロボット。VLA基盤モデルを搭載し人間と同じ空間で多様な業務を自律実行。TX Operationsが未来の運用を担う。</div>
+          <div class="robot-tags"><span class="rtag">VLA Foundation Model</span><span class="rtag">生成AI</span><span class="rtag">7-Eleven共同開発</span><span class="rtag">2029年展開予定</span></div>
+          <div class="robot-status-row"><span class="rstatus coming">開発中</span><div class="robot-venue">2029年目標</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="role-callout">
+      <div class="role-item"><i class="ti ti-tool role-icon"></i><div><div class="role-h">展開・設置</div><div class="role-b">TXが開発したロボットを現場へ持ち込み稼働まで一貫担当。</div></div></div>
+      <div class="role-item"><i class="ti ti-activity role-icon"></i><div><div class="role-h">安定稼働・保守</div><div class="role-b">24/7の現場稼働を支え、エラー対応・修理・チューニング。</div></div></div>
+      <div class="role-item"><i class="ti ti-refresh role-icon"></i><div><div class="role-h">データをAIへ還流</div><div class="role-b">現場の動作データをTXへフィードバックしAIの進化を支える。</div></div></div>
+    </div>
+  </section>
+
+  <!-- ③ 動画帯 -->
+  <div class="video-band">
+    <div class="ph" style="height:100%;border:none;border-radius:0">
+      <div class="video-play"><i class="ti ti-player-play"></i></div>
+      <div class="ph-lbl">③ ロボット稼働動画（フル幅帯）</div>
+      <div class="ph-hint" style="max-width:280px;font-size:10px">GHOSTまたはLogi Robotの稼働シーン<br>自動再生・ミュート推奨 · 16:9 · MP4</div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="footer-l">© 2025 TX Operations株式会社</div>
+    <div class="footer-links"><a href="#">お問い合わせ</a><a href="https://tx-inc.com/ja/" target="_blank">Telexistence株式会社 →</a></div>
+  </footer>
+</div>
+
+<!-- ══ PAGE: ABOUT ══ -->
+<div id="page-about" class="page">
+  <!-- FORD -->
+  <section class="sec" style="border-top:none">
+    <div class="lbl">Our Origin</div>
+    <div class="grid2">
+      <div>
+        <div class="ttl">フォードの精神を、<br>ロボットで再現する。</div>
+        <p class="body-txt">1908年、フォードのT型モデルは大量生産技術で史上初めて自動車を大衆へ届けた。私たちの前身「Model T Operations」はその精神を継承し、最先端ロボットを現場というカオスの中で社会実装することをめざして誕生した。<br><br>2025年8月、<strong style="color:#e0deda">TX Operations株式会社</strong>として新たな一歩を踏み出す。</p>
+      </div>
+      <div class="ford-card">
+        <div>
+          <div class="ford-yr">Ford Motor Company · 1908</div>
+          <div class="ford-q">"大量生産で、<br>世界を変える"</div>
+          <div class="ford-a">— T型フォード誕生の精神から、Model T Operationsへ。そしてTX Operationsへ。</div>
+        </div>
+        <div style="font-size:10px;color:#1e1e22;letter-spacing:.06em">TX Operations株式会社</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CEO -->
+  <section class="sec sec-alt">
+    <div class="lbl">Representative's Message</div>
+    <div class="ceo-grid">
+      <div class="ceo-card">
+        <div class="ceo-photo"><div class="ph" style="height:160px;border:none;border-radius:0;border-bottom:1px solid #2a2a2e"><i class="ti ti-user"></i><div class="ph-lbl">④ 代表 杉本竜一 写真</div><div class="ph-hint">上半身ポートレート<br>暗背景 or オフィス背景推奨</div></div></div>
+        <div class="ceo-info">
+          <div class="ceo-av-row"><div class="ceo-av">RS</div><div><div class="ceo-name">杉本 竜一</div><div class="ceo-t">代表取締役</div></div></div>
+          <div class="ceo-msg">「現場に答えがある」——ロボットの展開・修理の最前線を歩き続けた先にあったのが、このTX Operationsという場所です。完璧な計画より、現場の高速実験。失敗を糧に、ロボットをインフラへ。</div>
+        </div>
+      </div>
+      <div>
+        <div class="ttl">「Unproven」を<br>「Proven」に<br>変える仕事。</div>
+        <p class="body-txt">研究室で生まれた技術は、現場に出て初めて本物になる。エラーと向き合い、丁寧に運用し、AIを学習させるループを回し続ける——それがTX Operationsという組織の存在意義です。</p>
+        <div class="vals">
+          <div class="val"><div class="val-h">高速実験</div><div class="val-b">仮説と事実を行き来しながら前進します。</div></div>
+          <div class="val"><div class="val-h">現場ファースト</div><div class="val-b">エラーが次の進化への種になります。</div></div>
+          <div class="val"><div class="val-h">技術をインフラへ</div><div class="val-b">Deep Techを「当たり前」に変えます。</div></div>
+          <div class="val"><div class="val-h">多様な背景を歓迎</div><div class="val-b">異業種の経験が現場を強くします。</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PHILOSOPHY -->
+  <section class="sec">
+    <div class="lbl">Philosophy</div>
+    <div class="ttl" style="margin-bottom:1.5rem">私たちが大切にする3つの原則</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#2a2a2e;border:1px solid #2a2a2e;border-radius:12px;overflow:hidden">
+      <div style="background:#0d0d10;padding:1.75rem">
+        <div style="font-size:24px;font-weight:900;color:#e4e2dc;letter-spacing:-.04em;margin-bottom:.6rem">01</div>
+        <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:.5rem">Unproven to Proven</div>
+        <div style="font-size:11px;line-height:1.75;color:#bcbcbc">研究室で生まれた未検証の技術を、現場での実運用を通じて社会に証明する。それが私たちの存在理由です。</div>
+      </div>
+      <div style="background:#0d0d10;padding:1.75rem">
+        <div style="font-size:24px;font-weight:900;color:#e4e2dc;letter-spacing:-.04em;margin-bottom:.6rem">02</div>
+        <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:.5rem">現場が最良の教師</div>
+        <div style="font-size:11px;line-height:1.75;color:#bcbcbc">完璧な計画より、現場での高速な試行と検証を重視します。エラーは恐れるものではなく、次の進化への手がかりです。</div>
+      </div>
+      <div style="background:#0d0d10;padding:1.75rem">
+        <div style="font-size:24px;font-weight:900;color:#e4e2dc;letter-spacing:-.04em;margin-bottom:.6rem">03</div>
+        <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:.5rem">技術をインフラへ</div>
+        <div style="font-size:11px;line-height:1.75;color:#bcbcbc">珍しい技術を「当たり前」にすること。それが社会実装のゴールであり、私たちが追い続ける景色です。</div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ⑤ オフィス帯 -->
+  <div class="office-band">
+    <div class="ph" style="height:100%;border:none;border-radius:0"><i class="ti ti-camera"></i><div class="ph-lbl">⑤ オフィス / 現場写真（横長帯）</div><div class="ph-hint" style="font-size:10px;max-width:280px">AE3-3オフィス全景 or チーム作業中のシーン<br>横長 · 2400×600程度推奨</div></div>
+  </div>
+
+  <!-- NUMBERS -->
+  <section class="sec sec-alt">
+    <div class="lbl">Numbers</div>
+    <div class="ttl">数字で見る、TX Operations</div>
+    <div class="nums-grid">
+      <div class="num-card"><div class="num-val">〇〇%</div><div class="num-lbl">有給取得率</div></div>
+      <div class="num-card"><div class="num-val">〇〇h</div><div class="num-lbl">月平均残業時間</div></div>
+      <div class="num-card"><div class="num-val">〇〇%</div><div class="num-lbl">異業種転職比率</div></div>
+      <div class="num-card"><div class="num-val">〇〇名</div><div class="num-lbl">現在の社員数</div></div>
+    </div>
+    <p style="font-size:10px;color:#999;margin-top:.6rem">※ 数値は順次公開予定</p>
+  </section>
+
+  <footer class="footer"><div class="footer-l">© 2025 TX Operations株式会社</div><div class="footer-links"><a href="#">お問い合わせ</a><a href="https://tx-inc.com/ja/" target="_blank">Telexistence株式会社 →</a></div></footer>
+</div>
+
+<!-- ══ PAGE: CULTURE ══ -->
+<div id="page-culture" class="page">
+  <section class="sec" style="border-top:none">
+    <div class="lbl">Benefits</div>
+    <div class="ttl">働く環境・福利厚生</div>
+    <div class="ben-grid">
+      <div class="ben-item"><i class="ti ti-clock"></i><div><div class="ben-h">フレックスタイム制</div><div class="ben-b">コアタイムなし。自分のリズムで働けます。</div></div></div>
+      <div class="ben-item"><i class="ti ti-home"></i><div><div class="ben-h">リモートワーク対応</div><div class="ben-b">現場業務を除き在宅勤務が可能です。</div></div></div>
+      <div class="ben-item"><i class="ti ti-school"></i><div><div class="ben-h">スキルアップ支援</div><div class="ben-b">資格取得費用・書籍購入補助あり。</div></div></div>
+      <div class="ben-item"><i class="ti ti-heart"></i><div><div class="ben-h">社会保険完備</div><div class="ben-b">健康保険・厚生年金・雇用保険完備。</div></div></div>
+      <div class="ben-item"><i class="ti ti-calendar"></i><div><div class="ben-h">年次有給休暇</div><div class="ben-b">入社時より付与。取得しやすい文化です。</div></div></div>
+      <div class="ben-item"><i class="ti ti-award"></i><div><div class="ben-h">成果連動評価</div><div class="ben-b">実力主義。職種・年次に関わらず評価します。</div></div></div>
+    </div>
+  </section>
+
+  <!-- ⑥ 社員写真 -->
+  <section class="sec sec-alt">
+    <div class="lbl">People</div>
+    <div class="ttl">一緒に働く仲間たち</div>
+    <div class="staff-grid">
+      <div class="staff-card">
+        <div class="staff-photo"><div class="ph" style="height:130px;border:none;border-radius:0;border-bottom:1px solid #2a2a2e"><i class="ti ti-user"></i><div class="ph-lbl">⑥ 社員写真 A</div></div></div>
+        <div class="staff-info"><div class="staff-name">〇〇 〇〇</div><div class="staff-role">Field Services · 〇〇年入社</div><div class="staff-comment">"現場で学んだことが、ロボットをもっと良くする。"</div></div>
+      </div>
+      <div class="staff-card">
+        <div class="staff-photo"><div class="ph" style="height:130px;border:none;border-radius:0;border-bottom:1px solid #2a2a2e"><i class="ti ti-user"></i><div class="ph-lbl">⑥ 社員写真 B</div></div></div>
+        <div class="staff-info"><div class="staff-name">〇〇 〇〇</div><div class="staff-role">Operations · 〇〇年入社</div><div class="staff-comment">"異業種からでも、すぐに活躍できる環境がある。"</div></div>
+      </div>
+      <div class="staff-card">
+        <div class="staff-photo"><div class="ph" style="height:130px;border:none;border-radius:0;border-bottom:1px solid #2a2a2e"><i class="ti ti-user"></i><div class="ph-lbl">⑥ 社員写真 C</div></div></div>
+        <div class="staff-info"><div class="staff-name">〇〇 〇〇</div><div class="staff-role">Data Collection · 〇〇年入社</div><div class="staff-comment">"自分が集めたデータがAIを進化させる実感がある。"</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CAREER PATH -->
+  <section class="sec">
+    <div class="lbl">Career Path</div>
+    <div class="ttl">入社後のキャリアイメージ</div>
+    <p class="body-txt" style="max-width:480px;margin-bottom:0">未経験でも活躍できます。現場経験を積みながら専門性を高めるステップを用意しています。</p>
+    <div class="path">
+      <div class="path-step"><div class="path-num">STEP 01</div><div class="path-role">現場デビュー</div><div class="path-yr">〜6ヶ月</div></div>
+      <div class="path-step"><div class="path-num">STEP 02</div><div class="path-role">独立稼働</div><div class="path-yr">6ヶ月〜1年</div></div>
+      <div class="path-step"><div class="path-num">STEP 03</div><div class="path-role">リーダー</div><div class="path-yr">1〜2年</div></div>
+      <div class="path-step"><div class="path-num">STEP 04</div><div class="path-role">マネージャー</div><div class="path-yr">2年〜</div></div>
+    </div>
+  </section>
+
+  <footer class="footer"><div class="footer-l">© 2025 TX Operations株式会社</div><div class="footer-links"><a href="#">お問い合わせ</a><a href="https://tx-inc.com/ja/" target="_blank">Telexistence株式会社 →</a></div></footer>
+</div>
+
+<!-- ══ PAGE: RECRUIT ══ -->
+<div id="page-recruit" class="page">
+  <section class="sec" style="border-top:none">
+    <div class="lbl">Selection Flow</div>
+    <div class="ttl">選考フロー</div>
+    <div class="flow">
+      <div class="flow-step"><strong>書類選考</strong>engage応募</div>
+      <span class="flow-arr">→</span>
+      <div class="flow-step"><strong>カジュアル面談</strong>オンライン30分</div>
+      <span class="flow-arr">→</span>
+      <div class="flow-step"><strong>1次面接</strong>現場見学込み</div>
+      <span class="flow-arr">→</span>
+      <div class="flow-step"><strong>最終面接</strong>代表との対話</div>
+      <span class="flow-arr">→</span>
+      <div class="flow-step"><strong>内定</strong>〜1週間でご連絡</div>
+    </div>
+    <p style="font-size:10px;color:#a8a8a8;margin-top:.75rem">※ ポジションにより異なる場合があります</p>
+  </section>
+
+  <section class="sec sec-alt">
+    <div class="lbl">Jobs</div>
+    <div class="ttl" style="margin-bottom:.4rem">一緒に、現場を変えよう。</div>
+    <p class="body-txt" style="max-width:440px;margin-bottom:0">未経験・異業種歓迎。大切なのは現場で考え動ける「姿勢」です。</p>
+    <div class="job-list">
+      <div class="job-row"><div><div class="job-t">フィールドサービスエンジニア</div><div class="job-m">Field Services · 正社員 · 東京 — Retail / Logi 両対応</div></div><span class="badge open">募集中</span></div>
+      <div class="job-row"><div><div class="job-t">ロボット動作データ収集オペレーター</div><div class="job-m">Data Collection · アルバイト / 業務委託 · 東京</div></div><span class="badge open">募集中</span></div>
+      <div class="job-row"><div><div class="job-t">ロボットオペレーター（Retail）</div><div class="job-m">Operations · アルバイト · 東京</div></div><span class="badge open">募集中</span></div>
+      <div class="job-row"><div><div class="job-t">生産・製造スタッフ</div><div class="job-m">Production & Delivery · 正社員 · 東京</div></div><span class="badge open">募集中</span></div>
+      <div class="job-row"><div><div class="job-t">カスタマーサクセス担当</div><div class="job-m">Customer Experience · 正社員 · 東京</div></div><span class="badge">検討中</span></div>
+    </div>
+    <p style="font-size:10px;color:#a8a8a8;margin-top:.85rem">詳細・応募は <a href="https://en-gage.net/mto_recruit/" style="color:#c8c8c8;text-decoration:none;border-bottom:1px solid #2a2a2e">engage採用ページ</a> よりご確認ください</p>
+  </section>
+
+  <footer class="footer"><div class="footer-l">© 2025 TX Operations株式会社</div><div class="footer-links"><a href="#">お問い合わせ</a><a href="https://tx-inc.com/ja/" target="_blank">Telexistence株式会社 →</a></div></footer>
+</div>
+
+<!-- ══ PAGE: COMPANY ══ -->
+<div id="page-company" class="page">
+  <section class="sec" style="border-top:none">
+    <div class="lbl">Company</div>
+    <div class="ttl">会社概要</div>
+    <table class="co-table">
+      <tr><td>会社名</td><td>TX Operations株式会社</td></tr>
+      <tr><td>設立</td><td>2021年（前身：Model T Operations株式会社）</td></tr>
+      <tr><td>代表取締役</td><td>杉本 竜一</td></tr>
+      <tr><td>事業内容</td><td>遠隔操作ロボットの運用・保守・管理業務</td></tr>
+      <tr><td>親会社</td><td>Telexistence株式会社（TX）</td></tr>
+      <tr><td>所在地</td><td>東京都大田区平和島6-1-1 東京流通センター物流ビルA棟 AE3-3</td></tr>
+      <tr><td>法人番号</td><td>2010401152164</td></tr>
+      <tr><td>採用ページ</td><td><a href="https://en-gage.net/mto_recruit/" style="color:#c8c8c8;text-decoration:none;border-bottom:1px solid #2a2a2e">en-gage.net/mto_recruit</a></td></tr>
+    </table>
+  </section>
+
+  <footer class="footer"><div class="footer-l">© 2025 TX Operations株式会社</div><div class="footer-links"><a href="#">プライバシーポリシー</a><a href="#">お問い合わせ</a><a href="https://tx-inc.com/ja/" target="_blank">Telexistence株式会社 →</a></div></footer>
+</div>
+
+<script>
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  const map = {home:0, robots:1, about:2, culture:3, recruit:4, company:5};
+  document.querySelectorAll('.nav-tab')[map[id]].classList.add('active');
+  window.scrollTo(0, 0);
+}
+</script>
+</body>
+</html>
