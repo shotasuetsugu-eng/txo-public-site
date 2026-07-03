@@ -604,9 +604,8 @@
 })();
 </script>
 <!-- TXO_EXTRA_EDITOR_TOOLS_END -->
-<!-- TXO_DRAGGABLE_PANEL_FIX_START -->
+<!-- TXO_POINTER_DRAG_PANEL_START -->
 <style>
-  /* 編集補助パネルを黒系にして、自由に動かせるUIへ変更 */
   #txoExtraEditorTools {
     position: fixed !important;
     left: 24px !important;
@@ -625,18 +624,13 @@
     border: 1px solid #00d4a6 !important;
     border-radius: 10px !important;
     box-shadow: 0 10px 30px rgba(0,0,0,0.45) !important;
-
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
     font-size: 12px !important;
   }
 
   #txoExtraEditorTools .txoTitle {
     display: flex !important;
     align-items: center !important;
-    justify-content: space-between !important;
-    gap: 8px !important;
-    cursor: move !important;
-    user-select: none !important;
+    gap: 6px !important;
 
     margin: -10px -10px 8px -10px !important;
     padding: 8px 10px !important;
@@ -645,13 +639,43 @@
     border-bottom: 1px solid #00d4a6 !important;
     border-radius: 10px 10px 0 0 !important;
     font-weight: 700 !important;
+    user-select: none !important;
   }
 
-  #txoExtraEditorTools .txoTitle::before {
-    content: "↕ 移動";
-    font-size: 11px;
-    color: #8fffe0;
-    margin-right: auto;
+  #txoDragHandle {
+    cursor: grab !important;
+    touch-action: none !important;
+    background: #06382f !important;
+    border: 1px solid #00d4a6 !important;
+    color: #ffffff !important;
+    border-radius: 7px !important;
+    padding: 4px 8px !important;
+    font-size: 12px !important;
+    white-space: nowrap !important;
+  }
+
+  #txoDragHandle:active {
+    cursor: grabbing !important;
+  }
+
+  #txoPanelTitleText {
+    white-space: nowrap !important;
+  }
+
+  #txoPanelButtonArea {
+    display: flex !important;
+    gap: 4px !important;
+    margin-left: auto !important;
+  }
+
+  #txoExtraToggleBtn,
+  #txoExtraResetBtn,
+  #txoExtraCloseBtn {
+    flex: none !important;
+    padding: 4px 8px !important;
+    font-size: 12px !important;
+    border-radius: 7px !important;
+    white-space: nowrap !important;
   }
 
   #txoExtraEditorTools input {
@@ -662,10 +686,6 @@
     border-radius: 7px !important;
     padding: 7px 8px !important;
     font-size: 12px !important;
-  }
-
-  #txoExtraEditorTools input::placeholder {
-    color: #7aa89d !important;
   }
 
   #txoExtraEditorTools button {
@@ -700,7 +720,6 @@
     color: #d7fff5 !important;
     border: 1px solid #167d6b !important;
     word-break: break-all !important;
-    line-height: 1.35 !important;
   }
 
   #txoExtraEditorTools .txoSmall {
@@ -710,29 +729,19 @@
     line-height: 1.35 !important;
   }
 
-  #txoExtraToggleBtn,
-  #txoExtraCloseBtn,
-  #txoExtraResetBtn {
-    flex: none !important;
-    padding: 3px 8px !important;
-    font-size: 11px !important;
-    border-radius: 999px !important;
-    white-space: nowrap !important;
-  }
-
   #txoExtraEditorTools.txo-extra-minimized {
-    width: 110px !important;
-    height: 36px !important;
-    max-height: 36px !important;
+    width: 150px !important;
+    height: 40px !important;
+    max-height: 40px !important;
     overflow: hidden !important;
     padding: 0 !important;
   }
 
   #txoExtraEditorTools.txo-extra-minimized .txoTitle {
     margin: 0 !important;
+    height: 40px !important;
     border-radius: 10px !important;
-    height: 36px !important;
-    padding: 0 8px !important;
+    padding: 5px 8px !important;
   }
 
   #txoExtraEditorTools.txo-extra-minimized input,
@@ -751,7 +760,6 @@
     left: 24px !important;
     top: 180px !important;
     z-index: 999999 !important;
-
     background: #001f1a !important;
     color: #ffffff !important;
     border: 1px solid #00d4a6 !important;
@@ -759,72 +767,51 @@
     padding: 8px 12px !important;
     font-size: 12px !important;
     cursor: pointer !important;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.35) !important;
-  }
-
-  #txoExtraShowBtn:hover {
-    background: #084437 !important;
   }
 </style>
 
 <script>
 (function () {
-  const PANEL_KEY = "txo_editor_helper_panel_position_v2";
+  const PANEL_KEY = "txo_editor_helper_panel_position_v3";
 
-  function setupDraggablePanel() {
+  function setupPanelPointerDrag() {
     const panel = document.getElementById("txoExtraEditorTools");
     if (!panel) return false;
 
-    const title = panel.querySelector(".txoTitle");
+    let title = panel.querySelector(".txoTitle");
     if (!title) return false;
 
-    if (panel.dataset.draggableReady === "1") return true;
-    panel.dataset.draggableReady = "1";
+    if (panel.dataset.pointerDragReady === "1") return true;
+    panel.dataset.pointerDragReady = "1";
 
-    title.textContent = "編集補助";
+    title.innerHTML = `
+      <span id="txoDragHandle">↕ 移動</span>
+      <span id="txoPanelTitleText">編集補助</span>
+      <span id="txoPanelButtonArea">
+        <button type="button" id="txoExtraToggleBtn">小さく</button>
+        <button type="button" id="txoExtraResetBtn">戻す</button>
+        <button type="button" id="txoExtraCloseBtn">×</button>
+      </span>
+    `;
 
-    const btnWrap = document.createElement("div");
-    btnWrap.style.display = "flex";
-    btnWrap.style.gap = "4px";
-    btnWrap.style.marginLeft = "auto";
+    const handle = document.getElementById("txoDragHandle");
+    const toggleBtn = document.getElementById("txoExtraToggleBtn");
+    const resetBtn = document.getElementById("txoExtraResetBtn");
+    const closeBtn = document.getElementById("txoExtraCloseBtn");
 
-    const toggleBtn = document.createElement("button");
-    toggleBtn.id = "txoExtraToggleBtn";
-    toggleBtn.type = "button";
-    toggleBtn.textContent = "小さく";
-
-    const resetBtn = document.createElement("button");
-    resetBtn.id = "txoExtraResetBtn";
-    resetBtn.type = "button";
-    resetBtn.textContent = "戻す";
-
-    const closeBtn = document.createElement("button");
-    closeBtn.id = "txoExtraCloseBtn";
-    closeBtn.type = "button";
-    closeBtn.textContent = "×";
-
-    btnWrap.appendChild(toggleBtn);
-    btnWrap.appendChild(resetBtn);
-    btnWrap.appendChild(closeBtn);
-    title.appendChild(btnWrap);
-
-    let saved = null;
     try {
-      saved = JSON.parse(localStorage.getItem(PANEL_KEY) || "null");
-    } catch (e) {
-      saved = null;
-    }
+      const saved = JSON.parse(localStorage.getItem(PANEL_KEY) || "null");
+      if (saved && typeof saved.left === "number" && typeof saved.top === "number") {
+        panel.style.left = saved.left + "px";
+        panel.style.top = saved.top + "px";
+        panel.style.right = "auto";
+        panel.style.bottom = "auto";
+      }
+    } catch (e) {}
 
-    if (saved && typeof saved.left === "number" && typeof saved.top === "number") {
-      panel.style.left = saved.left + "px";
-      panel.style.top = saved.top + "px";
-      panel.style.right = "auto";
-      panel.style.bottom = "auto";
-    }
-
-    function clampPosition(left, top) {
-      const maxLeft = Math.max(0, window.innerWidth - panel.offsetWidth - 8);
-      const maxTop = Math.max(0, window.innerHeight - panel.offsetHeight - 8);
+    function clamp(left, top) {
+      const maxLeft = Math.max(8, window.innerWidth - panel.offsetWidth - 8);
+      const maxTop = Math.max(8, window.innerHeight - panel.offsetHeight - 8);
 
       return {
         left: Math.min(Math.max(8, left), maxLeft),
@@ -841,30 +828,33 @@
     }
 
     let dragging = false;
+    let pointerId = null;
     let startX = 0;
     let startY = 0;
     let startLeft = 0;
     let startTop = 0;
 
-    title.addEventListener("mousedown", function (e) {
-      if (e.target && e.target.tagName === "BUTTON") return;
-
+    handle.addEventListener("pointerdown", function (e) {
       dragging = true;
-      startX = e.clientX;
-      startY = e.clientY;
+      pointerId = e.pointerId;
 
       const rect = panel.getBoundingClientRect();
+      startX = e.clientX;
+      startY = e.clientY;
       startLeft = rect.left;
       startTop = rect.top;
 
+      handle.setPointerCapture(pointerId);
       document.body.style.userSelect = "none";
+
       e.preventDefault();
+      e.stopPropagation();
     });
 
-    document.addEventListener("mousemove", function (e) {
-      if (!dragging) return;
+    handle.addEventListener("pointermove", function (e) {
+      if (!dragging || e.pointerId !== pointerId) return;
 
-      const next = clampPosition(
+      const next = clamp(
         startLeft + e.clientX - startX,
         startTop + e.clientY - startY
       );
@@ -873,15 +863,27 @@
       panel.style.top = next.top + "px";
       panel.style.right = "auto";
       panel.style.bottom = "auto";
+
+      e.preventDefault();
+      e.stopPropagation();
     });
 
-    document.addEventListener("mouseup", function () {
+    function stopDrag(e) {
       if (!dragging) return;
 
       dragging = false;
+      pointerId = null;
       document.body.style.userSelect = "";
       savePosition();
-    });
+
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }
+
+    handle.addEventListener("pointerup", stopDrag);
+    handle.addEventListener("pointercancel", stopDrag);
 
     toggleBtn.addEventListener("click", function () {
       panel.classList.toggle("txo-extra-minimized");
@@ -895,58 +897,51 @@
       panel.style.top = "180px";
       panel.style.right = "auto";
       panel.style.bottom = "auto";
-      localStorage.removeItem(PANEL_KEY);
       toggleBtn.textContent = "小さく";
+      localStorage.removeItem(PANEL_KEY);
     });
 
     closeBtn.addEventListener("click", function () {
+      const rect = panel.getBoundingClientRect();
       panel.classList.add("txo-extra-hidden");
 
       let showBtn = document.getElementById("txoExtraShowBtn");
+
       if (!showBtn) {
         showBtn = document.createElement("button");
         showBtn.id = "txoExtraShowBtn";
         showBtn.type = "button";
         showBtn.textContent = "編集補助";
-
-        showBtn.addEventListener("click", function () {
-          panel.classList.remove("txo-extra-hidden");
-          showBtn.remove();
-        });
-
         document.body.appendChild(showBtn);
       }
 
-      const rect = panel.getBoundingClientRect();
       showBtn.style.left = rect.left + "px";
       showBtn.style.top = rect.top + "px";
-    });
 
-    window.addEventListener("resize", function () {
-      const rect = panel.getBoundingClientRect();
-      const next = clampPosition(rect.left, rect.top);
-      panel.style.left = next.left + "px";
-      panel.style.top = next.top + "px";
-      savePosition();
+      showBtn.onclick = function () {
+        panel.classList.remove("txo-extra-hidden");
+        showBtn.remove();
+      };
     });
 
     return true;
   }
 
-  if (!setupDraggablePanel()) {
+  if (!setupPanelPointerDrag()) {
     let count = 0;
     const timer = setInterval(function () {
       count++;
-      if (setupDraggablePanel() || count > 50) {
+      if (setupPanelPointerDrag() || count > 60) {
         clearInterval(timer);
       }
     }, 100);
   }
 })();
 </script>
-<!-- TXO_DRAGGABLE_PANEL_FIX_END -->
+<!-- TXO_POINTER_DRAG_PANEL_END -->
 </body>
 </html>
+
 
 
 
