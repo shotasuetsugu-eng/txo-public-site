@@ -604,6 +604,86 @@
 })();
 </script>
 <!-- TXO_EXTRA_EDITOR_TOOLS_END -->
+<!-- TXO_FLOATING_PANEL_FIX_START -->
+<style>
+  /* 右側の設定パネルにかぶらないように移動 */
+  #txoExtraEditorTools {
+    right: 340px !important;
+    bottom: 18px !important;
+    width: 300px !important;
+    max-height: 360px !important;
+    overflow: auto !important;
+  }
+
+  /* 折りたたみ状態 */
+  #txoExtraEditorTools.txo-extra-minimized {
+    width: 120px !important;
+    max-height: 42px !important;
+    overflow: hidden !important;
+    padding: 8px 10px !important;
+  }
+
+  #txoExtraEditorTools.txo-extra-minimized input,
+  #txoExtraEditorTools.txo-extra-minimized .txoRow,
+  #txoExtraEditorTools.txo-extra-minimized .txoStatus,
+  #txoExtraEditorTools.txo-extra-minimized .txoSmall {
+    display: none !important;
+  }
+
+  #txoExtraEditorTools .txoTitle {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+  }
+
+  #txoExtraToggleBtn {
+    padding: 3px 8px !important;
+    font-size: 12px !important;
+    border-radius: 999px !important;
+    white-space: nowrap !important;
+  }
+</style>
+
+<script>
+(function () {
+  function setupExtraPanelFix() {
+    const panel = document.getElementById("txoExtraEditorTools");
+    if (!panel) return false;
+
+    const title = panel.querySelector(".txoTitle");
+    if (!title) return false;
+
+    if (document.getElementById("txoExtraToggleBtn")) return true;
+
+    const btn = document.createElement("button");
+    btn.id = "txoExtraToggleBtn";
+    btn.type = "button";
+    btn.textContent = "隠す";
+
+    btn.addEventListener("click", function () {
+      panel.classList.toggle("txo-extra-minimized");
+      btn.textContent = panel.classList.contains("txo-extra-minimized") ? "表示" : "隠す";
+    });
+
+    title.appendChild(btn);
+
+    return true;
+  }
+
+  if (!setupExtraPanelFix()) {
+    let count = 0;
+    const timer = setInterval(function () {
+      count++;
+      if (setupExtraPanelFix() || count > 40) {
+        clearInterval(timer);
+      }
+    }, 100);
+  }
+})();
+</script>
+<!-- TXO_FLOATING_PANEL_FIX_END -->
 </body>
 </html>
+
 
