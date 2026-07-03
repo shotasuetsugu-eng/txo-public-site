@@ -194,6 +194,7 @@
         else if(e.key==='ArrowDown'){snapshot();nudge(0,step);e.preventDefault()}
         else if(e.key==='ArrowLeft'){snapshot();nudge(-step,0);e.preventDefault()}
         else if(e.key==='ArrowRight'){snapshot();nudge(step,0);e.preventDefault()}
+        else if(e.key==='Backspace'||e.key==='Delete'){e.preventDefault();doRemove()}
       },true);
     };
     const bind=(id,fn)=>document.querySelector('#'+id).onchange=e=>{if(!selected)return;snapshot();fn(e.target.value)};
@@ -227,7 +228,8 @@
     document.querySelector('#resize').onclick=()=>{if(!selected)return;snapshot();selected.style.resize='both';selected.style.overflow='auto'};
     document.querySelector('#undo').onclick=()=>{const h=history.pop();if(h){h.el.innerHTML=h.html;h.el.style.cssText=h.style}};
     document.querySelector('#duplicate').onclick=()=>{if(!selected)return;snapshot();selected.after(selected.cloneNode(true))};
-    document.querySelector('#remove').onclick=()=>{if(!selected)return;snapshot();const next=selected.parentElement;selected.remove();selected=next};
+    function doRemove(){if(!selected)return;snapshot();clearHandles();const next=selected.parentElement;selected.remove();selected=next;if(selected)attachHandles()}
+    document.querySelector('#remove').onclick=doRemove;
     document.querySelector('#selectNavigation').onclick=()=>selectElement(frame.contentDocument.querySelector('.nav'));
     document.querySelector('#selectPageBackground').onclick=()=>selectElement(frame.contentDocument.body);
     document.querySelector('#addNav').onclick=()=>{const d=frame.contentDocument,id=prompt('移動先ページID（例: home）','home');if(!id)return;const tab=d.createElement('button');tab.className='nav-tab';tab.textContent='新しいページ';tab.setAttribute('onclick',`showPage('${id}')`);d.querySelector('.nav-tabs').append(tab);renderNavEditor()};
