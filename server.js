@@ -16,6 +16,7 @@ const fallbackPath = path.join(__dirname, "published.html");
 const pool = databaseUrl ? new pg.Pool({ connectionString: databaseUrl, ssl: { rejectUnauthorized: false } }) : null;
 
 app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "2mb", extended: false }));
 app.use(express.static(path.join(__dirname, "public")));
 
 function sessionToken() {
@@ -86,6 +87,17 @@ app.post("/api/login", (req, res) => {
   res.json({ success: true });
 });
 
+app.post("/admin/login", (req, res) => {
+  if (req.body?.password !== adminPassword) return res.redirect(303, "/admin?error=1");
+  res.cookie("txo_admin", sessionToken(), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+  });
+  res.redirect(303, "/admin");
+});
+
 app.get("/api/content", requireAdmin, async (_req, res) => {
   res.type("html").send(await readPublished());
 });
@@ -97,7 +109,12 @@ app.put("/api/content", requireAdmin, async (req, res) => {
   res.json({ success: true });
 });
 
-app.get("/admin", (_req, res) => res.sendFile(path.join(__dirname, "public", "editor.html")));
+app.get("/admin", (req, res) => {
+  if (cookies(req).txo_admin !== sessionToken()) {
+    return res.sendFile(path.join(__dirname, "public", "login.html"));
+  }
+  res.sendFile(path.join(__dirname, "public", "editor.html"));
+});
 app.get("/preview", async (_req, res) => res.type("html").send(await readPublished()));
 app.get("/", async (_req, res) => res.type("html").send(await readPublished()));
 

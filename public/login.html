@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>TXO 管理者ログイン</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#07110f;color:#fff;font-family:system-ui,sans-serif}
+    main{width:min(420px,90vw);padding:28px;border:1px solid #00d9bd;background:#061b18}
+    input{width:100%;margin:16px 0;padding:12px;background:#07110f;color:#fff;border:1px solid #27645c}
+    button{padding:10px 16px;border:0;border-radius:4px;background:#00e5c8;color:#001b18;font:inherit;cursor:pointer}
+    .error{color:#ff8a8a;line-height:1.6}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>管理者ログイン</h1>
+    <p>公開サイトを編集します。</p>
+    <form method="post" action="/admin/login">
+      <input name="password" type="password" placeholder="管理者パスワード" required autofocus>
+      <button type="submit">ログイン</button>
+    </form>
+    <p class="error" id="error" hidden>パスワードが違います。</p>
+  </main>
+  <script>if(new URLSearchParams(location.search).has('error'))document.querySelector('#error').hidden=false</script>
+</body>
+</html>
