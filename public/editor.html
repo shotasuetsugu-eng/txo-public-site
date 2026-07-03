@@ -2366,8 +2366,412 @@
 })();
 </script>
 <!-- TXO_IMAGE_AUTO_SIZE_END -->
+<!-- TXO_BACKGROUND_ZINDEX_START -->
+<style>
+  .txo-bg-z-btn {
+    background: #003f35 !important;
+    color: #ffffff !important;
+    border: 1px solid #00d4a6 !important;
+    border-radius: 6px !important;
+    padding: 9px 12px !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+  }
+
+  .txo-bg-z-btn:hover {
+    background: #006050 !important;
+  }
+
+  .txo-bg-btn {
+    background: #4a2600 !important;
+    border-color: #ffb020 !important;
+  }
+
+  .txo-z-btn {
+    background: #172b4d !important;
+    border-color: #4c9aff !important;
+  }
+
+  .txo-bg-z-selected {
+    outline: 2px solid #00e0c5 !important;
+    outline-offset: 2px !important;
+  }
+</style>
+
+<script>
+(function () {
+  let selectedElement = null;
+
+  function getFrame() {
+    return document.querySelector("iframe");
+  }
+
+  function getEditorDocument() {
+    const frame = getFrame();
+
+    if (frame && frame.contentDocument) {
+      return frame.contentDocument;
+    }
+
+    return document;
+  }
+
+  function getEditableRoot() {
+    const doc = getEditorDocument();
+
+    return (
+      doc.querySelector("[data-editor-root]") ||
+      doc.querySelector("#editor-root") ||
+      doc.querySelector("#canvas") ||
+      doc.querySelector(".canvas") ||
+      doc.querySelector("[contenteditable='true']") ||
+      doc.body
+    );
+  }
+
+  function clearOwnSelection() {
+    const doc = getEditorDocument();
+
+    doc.querySelectorAll(".txo-bg-z-selected").forEach(el => {
+      el.classList.remove("txo-bg-z-selected");
+    });
+  }
+
+  function selectElement(el) {
+    if (!el || !el.tagName) return;
+
+    const tag = el.tagName.toLowerCase();
+
+    if (tag === "html" || tag === "body") return;
+
+    clearOwnSelection();
+
+    selectedElement = el;
+    selectedElement.classList.add("txo-bg-z-selected");
+  }
+
+  function setupSelection() {
+    const doc = getEditorDocument();
+
+    if (!doc || doc.__txoBackgroundZindexReady) return;
+
+    doc.__txoBackgroundZindexReady = true;
+
+    doc.addEventListener("click", function (e) {
+      if (!e.target || !e.target.tagName) return;
+      selectElement(e.target);
+    }, true);
+  }
+
+  function getSelectedOrAlert() {
+    if (selectedElement) {
+      const doc = getEditorDocument();
+
+      if (doc.body.contains(selectedElement)) {
+        return selectedElement;
+      }
+    }
+
+    const doc = getEditorDocument();
+    const existingSelected =
+      doc.querySelector(".txo-selected-element") ||
+      doc.querySelector("[data-selected='true']") ||
+      doc.querySelector(".selected");
+
+    if (existingSelected) {
+      selectedElement = existingSelected;
+      return selectedElement;
+    }
+
+    alert("先に画像・文字・枠などをクリックして選択してください。");
+    return null;
+  }
+
+  function findBackgroundTarget() {
+    const root = getEditableRoot();
+
+    if (!selectedElement) {
+      return root;
+    }
+
+    const tag = selectedElement.tagName
+      ? selectedElement.tagName.toLowerCase()
+      : "";
+
+    if (tag === "img") {
+      return (
+        selectedElement.closest("section, article, header, footer, main, div") ||
+        selectedElement.parentElement ||
+        root
+      );
+    }
+
+    if (["section", "article", "header", "footer", "main", "div"].includes(tag)) {
+      return selectedElement;
+    }
+
+    return (
+      selectedElement.closest("section, article, header, footer, main, div") ||
+      selectedElement.parentElement ||
+      root
+    );
+  }
+
+  function applyBackgroundUrl(url) {
+    const target = findBackgroundTarget();
+
+    if (!target) {
+      alert("背景を入れる対象が見つかりません。");
+      return;
+    }
+
+    target.style.backgroundImage = "url('" + url.replace(/'/g, "\\'") + "')";
+    target.style.backgroundSize = "cover";
+    target.style.backgroundPosition = "center center";
+    target.style.backgroundRepeat = "no-repeat";
+
+    if (!target.style.minHeight) {
+      target.style.minHeight = "240px";
+    }
+
+    alert("背景画像を設定しました。");
+  }
+
+  function setBackgroundByUrl() {
+    const url = prompt(
+      "背景画像のURLを入力してください。\nアップロード済み画像のURL、または画像リンクを入れます。",
+      ""
+    );
+
+    if (!url) return;
+
+    applyBackgroundUrl(url.trim());
+  }
+
+  function selectedImageToBackground() {
+    const el = getSelectedOrAlert();
+
+    if (!el) return;
+
+    let img = null;
+
+    if (el.tagName && el.tagName.toLowerCase() === "img") {
+      img = el;
+    } else if (el.querySelector) {
+      img = el.querySelector("img");
+    }
+
+    if (!img || !img.src) {
+      alert("選択した要素の中に画像がありません。画像をクリックしてから押してください。");
+      return;
+    }
+
+    applyBackgroundUrl(img.src);
+
+    const hideOriginal = confirm("元の画像を非表示にしますか？\n背景だけにしたい場合はOK、画像も残す場合はキャンセル。");
+
+    if (hideOriginal) {
+      img.style.display = "none";
+    }
+  }
+
+  function clearBackground() {
+    const target = findBackgroundTarget();
+
+    if (!target) {
+      alert("背景を解除する対象が見つかりません。");
+      return;
+    }
+
+    target.style.backgroundImage = "";
+    target.style.backgroundSize = "";
+    target.style.backgroundPosition = "";
+    target.style.backgroundRepeat = "";
+
+    alert("背景画像を解除しました。");
+  }
+
+  function ensurePositioned(el) {
+    if (!el) return;
+
+    const doc = getEditorDocument();
+    const computed = doc.defaultView.getComputedStyle(el);
+
+    if (computed.position === "static") {
+      el.style.position = "relative";
+    }
+  }
+
+  function getCurrentZ(el) {
+    const doc = getEditorDocument();
+    const computed = doc.defaultView.getComputedStyle(el);
+
+    const raw = el.style.zIndex || computed.zIndex;
+    const z = parseInt(raw, 10);
+
+    if (Number.isFinite(z)) return z;
+
+    return 0;
+  }
+
+  function setZIndex(mode) {
+    const el = getSelectedOrAlert();
+
+    if (!el) return;
+
+    ensurePositioned(el);
+
+    const current = getCurrentZ(el);
+    let next = current;
+
+    if (mode === "front") {
+      next = current + 10;
+    }
+
+    if (mode === "back") {
+      next = Math.max(0, current - 10);
+    }
+
+    if (mode === "top") {
+      next = 9999;
+    }
+
+    if (mode === "bottom") {
+      next = 0;
+    }
+
+    el.style.zIndex = String(next);
+
+    alert("重なり順を変更しました。z-index: " + next);
+  }
+
+  function makeButton(id, text, className, onClick) {
+    const btn = document.createElement("button");
+    btn.id = id;
+    btn.type = "button";
+    btn.className = "txo-bg-z-btn " + (className || "");
+    btn.textContent = text;
+    btn.addEventListener("click", onClick);
+    return btn;
+  }
+
+  function addButtons() {
+    if (document.getElementById("txoBgUrlBtn")) return;
+
+    const buttons = Array.from(document.querySelectorAll("button"));
+
+    const imageAddBtn = buttons.find(btn => {
+      return (btn.textContent || "").trim() === "画像追加";
+    });
+
+    const publishBtn = buttons.find(btn => {
+      return (btn.textContent || "").trim() === "公開";
+    });
+
+    const area =
+      imageAddBtn && imageAddBtn.parentElement
+        ? imageAddBtn.parentElement
+        : publishBtn && publishBtn.parentElement
+          ? publishBtn.parentElement
+          : document.body;
+
+    const bgUrlBtn = makeButton(
+      "txoBgUrlBtn",
+      "背景URL",
+      "txo-bg-btn",
+      setBackgroundByUrl
+    );
+
+    const imgBgBtn = makeButton(
+      "txoImgToBgBtn",
+      "選択画像を背景",
+      "txo-bg-btn",
+      selectedImageToBackground
+    );
+
+    const clearBgBtn = makeButton(
+      "txoClearBgBtn",
+      "背景解除",
+      "txo-bg-btn",
+      clearBackground
+    );
+
+    const frontBtn = makeButton(
+      "txoZFrontBtn",
+      "前面へ",
+      "txo-z-btn",
+      function () { setZIndex("front"); }
+    );
+
+    const backBtn = makeButton(
+      "txoZBackBtn",
+      "背面へ",
+      "txo-z-btn",
+      function () { setZIndex("back"); }
+    );
+
+    const topBtn = makeButton(
+      "txoZTopBtn",
+      "最前面",
+      "txo-z-btn",
+      function () { setZIndex("top"); }
+    );
+
+    const bottomBtn = makeButton(
+      "txoZBottomBtn",
+      "最背面",
+      "txo-z-btn",
+      function () { setZIndex("bottom"); }
+    );
+
+    const insertAfter = imageAddBtn || publishBtn;
+
+    if (insertAfter && insertAfter.nextSibling) {
+      area.insertBefore(bottomBtn, insertAfter.nextSibling);
+      area.insertBefore(topBtn, bottomBtn);
+      area.insertBefore(backBtn, topBtn);
+      area.insertBefore(frontBtn, backBtn);
+      area.insertBefore(clearBgBtn, frontBtn);
+      area.insertBefore(imgBgBtn, clearBgBtn);
+      area.insertBefore(bgUrlBtn, imgBgBtn);
+    } else {
+      area.appendChild(bgUrlBtn);
+      area.appendChild(imgBgBtn);
+      area.appendChild(clearBgBtn);
+      area.appendChild(frontBtn);
+      area.appendChild(backBtn);
+      area.appendChild(topBtn);
+      area.appendChild(bottomBtn);
+    }
+  }
+
+  function setupAll() {
+    addButtons();
+    setupSelection();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", setupAll);
+  } else {
+    setupAll();
+  }
+
+  setTimeout(setupAll, 500);
+  setTimeout(setupAll, 1500);
+
+  const frame = getFrame();
+
+  if (frame) {
+    frame.addEventListener("load", function () {
+      setTimeout(setupAll, 300);
+    });
+  }
+})();
+</script>
+<!-- TXO_BACKGROUND_ZINDEX_END -->
 </body>
 </html>
+
 
 
 
