@@ -9,146 +9,181 @@
     button,input,select{font:inherit}.login{min-height:100vh;display:grid;place-items:center}.login>div{width:min(420px,90vw);padding:28px;border:1px solid #00d9bd;background:#061b18}
     .login input{width:100%;margin:16px 0;padding:12px;background:#07110f;color:#fff;border:1px solid #27645c}.primary{background:#00e5c8;color:#001b18;border:0}
     button{padding:9px 13px;border:1px solid #27645c;background:#07110f;color:#fff;cursor:pointer;border-radius:4px}
-    .app{display:block;height:100vh}.toolbar{height:58px;display:flex;align-items:center;gap:7px;padding:8px;border-bottom:1px solid #27645c;overflow-x:auto;white-space:nowrap}
-    .toolbar strong{margin-right:auto}.workspace{height:calc(100vh - 58px);display:grid;grid-template-columns:240px minmax(0,1fr) 280px}.canvas{padding:12px;background:#222}
+    button.active-toggle{background:#00e5c8;color:#001b18}
+    .app{display:none;height:100vh}.toolbar{height:58px;display:flex;align-items:center;gap:7px;padding:8px;border-bottom:1px solid #27645c;overflow-x:auto;white-space:nowrap}
+    .toolbar strong{margin-right:auto}.workspace{height:calc(100vh - 58px);display:grid;grid-template-columns:1fr 300px}.canvas{padding:12px;background:#222}
     iframe{width:100%;height:100%;border:1px solid #00d9bd;background:#fff}.panel{padding:14px;border-left:1px solid #27645c;overflow:auto}.panel label{display:block;margin:12px 0 5px;font-size:12px;color:#9bbbb5}
     .panel input,.panel select{width:100%;padding:9px;background:#061b18;color:#fff;border:1px solid #27645c}.hint{font-size:12px;color:#9bbbb5;line-height:1.6}
-    .left-panel{padding:12px;border-right:1px solid #27645c;overflow:auto}.nav-editor-row{display:grid;grid-template-columns:1fr auto;gap:5px;margin-bottom:8px}.nav-editor-row input{min-width:0;padding:8px;background:#061b18;color:#fff;border:1px solid #27645c}.nav-editor-actions{display:flex;gap:3px}.nav-editor-actions button{padding:5px 7px}
-    @media(max-width:800px){.workspace{grid-template-columns:1fr}.panel{position:fixed;right:0;bottom:0;width:100%;max-height:38vh;background:#07110f;z-index:3}}
+    .panel-row{display:flex;gap:8px}.panel-row button{flex:1}
+    .section-title{margin-top:18px;padding-top:12px;border-top:1px solid #1b3d38;font-size:11px;letter-spacing:.08em;color:#5f8b83;text-transform:uppercase}
+    @media(max-width:800px){.workspace{grid-template-columns:1fr}.panel{position:fixed;right:0;bottom:0;width:100%;max-height:42vh;background:#07110f;z-index:3}}
   </style>
 </head>
 <body>
+  <div class="login" id="login"><div><h1>管理者ログイン</h1><p>公開サイトを編集します。</p><input id="password" type="password" placeholder="管理者パスワード"><button class="primary" id="loginButton">ログイン</button><p id="loginError"></p></div></div>
   <div class="app" id="app">
     <div class="toolbar">
       <strong>TXO ビジュアル編集</strong>
-      <button id="undo">1つ戻る</button><button id="move">ドラッグ移動</button><button id="resize">自由リサイズ</button>
+      <button id="undo">1つ戻る</button><button id="move">ドラッグ移動</button>
       <button data-add="text">文字追加</button><button data-add="image">画像追加</button><button data-add="video">動画追加</button>
-      <button data-add="link">リンク追加</button><button data-add="section">セクション追加</button>
-      <button id="duplicate">複製</button><button id="remove">削除</button>
-      <button id="reset" style="border-color:#a33">初期状態に戻す</button>
+      <button data-add="section">セクション追加</button>
+      <button id="duplicate">複製</button><button id="delete">削除</button>
       <button id="publish" class="primary">公開</button><button onclick="window.open('/','_blank')">公開画面</button>
     </div>
     <div class="workspace">
-      <aside class="left-panel">
-        <h3>ページ・Navigation</h3>
-        <p class="hint">ページ名を変更できます。ページを押すと編集画面を切り替えます。</p>
-        <div id="navEditor"></div>
-        <button id="addNav">Navigationを追加</button>
-        <hr style="border-color:#27645c;margin:18px 0">
-        <button id="selectNavigation">Navigation全体を選択</button>
-        <button id="selectPageBackground">ページ全体を選択</button>
-      </aside>
       <div class="canvas"><iframe id="frame" src="/preview"></iframe></div>
       <aside class="panel">
-        <h3>選択中の要素</h3><p class="hint" id="selectedName">画面内の編集したい場所をクリック</p>
-        <p class="hint">ページ移動は通常クリック。Navigation自体の編集はAltキーを押しながらクリックします。選択中は矢印キーで1px、Shift+矢印キーで10px移動できます（「ドラッグ移動」中はマウスでも移動可）。</p>
+        <h3>選択中の要素</h3><p class="hint" id="selectedName">画面内の編集したい場所をクリック（ナビゲーションタブをクリックすると通常通りページも切り替わります）</p>
+
+        <div class="section-title">文字</div>
         <label>文字</label><input id="text">
         <label>文字サイズ</label><input id="fontSize" placeholder="例: 32px">
         <label>文字色</label><input id="color" type="color">
+        <div class="panel-row">
+          <button id="boldToggle">太字</button>
+          <button id="italicToggle">斜体</button>
+        </div>
+        <label>文字揃え</label>
+        <select id="textAlign">
+          <option value="">指定なし</option>
+          <option value="left">左揃え</option>
+          <option value="center">中央揃え</option>
+          <option value="right">右揃え</option>
+        </select>
+        <label>リンク先URL（リンク要素のみ）</label><input id="href" placeholder="https://...">
+
+        <div class="section-title">背景・サイズ</div>
         <label>背景色</label><input id="background" type="color">
         <label>背景画像URL</label><input id="backgroundImage" placeholder="https://...">
         <label>背景動画URL</label><input id="backgroundVideo" placeholder="https://...mp4">
-        <label>リンク先URL</label><input id="linkUrl" placeholder="https://...">
         <label>幅</label><input id="width" placeholder="例: 100% / 500px">
         <label>高さ</label><input id="height" placeholder="例: 400px">
         <label>内側余白</label><input id="padding" placeholder="例: 24px">
         <label>角丸</label><input id="radius" placeholder="例: 8px">
-        <label>レイアウト</label><select id="display"><option value="">選択</option><option value="block">通常</option><option value="flex">横並び</option><option value="grid">グリッド</option></select>
-        <label>列数</label><select id="columns"><option value="">選択</option><option value="1fr">1列</option><option value="repeat(2,1fr)">2列</option><option value="repeat(3,1fr)">3列</option><option value="repeat(4,1fr)">4列</option></select>
-        <label>要素間の余白</label><input id="gap" placeholder="例: 16px">
       </aside>
     </div>
   </div>
   <input id="file" type="file" hidden>
   <script>
-    const app=document.querySelector('#app'),frame=document.querySelector('#frame');
-    const selectedName=document.querySelector('#selectedName'),text=document.querySelector('#text'),linkUrl=document.querySelector('#linkUrl');
-    const navEditor=document.querySelector('#navEditor'),move=document.querySelector('#move'),file=document.querySelector('#file');
+    const login=document.querySelector('#login'),app=document.querySelector('#app'),frame=document.querySelector('#frame');
     let selected=null,moving=false,history=[];
+
     const snapshot=()=>{if(selected)history.push({el:selected,html:selected.innerHTML,style:selected.style.cssText})};
-    const selectElement=el=>{if(selected)selected.style.outline='';selected=el;if(!selected)return;selectedName.textContent=selected.tagName+' / '+(selected.textContent||'').slice(0,40);text.value=selected.children.length?'':selected.textContent||'';linkUrl.value=selected.closest('a')?.getAttribute('href')||'';selected.style.outline='2px solid #00e5c8'};
-    const pageIdOf=el=>{const value=el.getAttribute('onclick')||'';return value.match(/showPage\(['"]([^'"]+)/)?.[1]||''};
-    const renderNavEditor=()=>{const d=frame.contentDocument;if(!d)return;const tabs=[...d.querySelectorAll('.nav-tab')];navEditor.innerHTML='';tabs.forEach((tab,index)=>{const row=document.createElement('div');row.className='nav-editor-row';const input=document.createElement('input');input.value=tab.textContent.trim();input.oninput=()=>tab.textContent=input.value;const actions=document.createElement('div');actions.className='nav-editor-actions';const open=document.createElement('button');open.textContent='開く';open.onclick=()=>frame.contentWindow.showPage(pageIdOf(tab));const up=document.createElement('button');up.textContent='↑';up.onclick=()=>{if(tab.previousElementSibling)tab.parentElement.insertBefore(tab,tab.previousElementSibling);renderNavEditor()};const down=document.createElement('button');down.textContent='↓';down.onclick=()=>{if(tab.nextElementSibling)tab.parentElement.insertBefore(tab.nextElementSibling,tab);renderNavEditor()};const del=document.createElement('button');del.textContent='×';del.onclick=()=>{snapshot();tab.remove();renderNavEditor()};actions.append(open,up,down,del);row.append(input,actions);navEditor.append(row)})};
-    function nudge(dx,dy){
-      if(!selected)return;
-      const cs=selected.ownerDocument.defaultView.getComputedStyle(selected);
-      if(cs.position==='static')selected.style.position='relative';
-      const l=parseFloat(selected.style.left)||0;
-      const t=parseFloat(selected.style.top)||0;
-      selected.style.left=(l+dx)+'px';
-      selected.style.top=(t+dy)+'px';
+
+    document.querySelector('#loginButton').onclick=async()=>{
+      const r=await fetch('/api/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password:password.value})});
+      if(r.ok){login.style.display='none';app.style.display='block'}else loginError.textContent='ログインできませんでした'
+    };
+
+    function selectElement(el){
+      if(selected && selected!==el) selected.style.outline='';
+      selected=el;
+      selectedName.textContent=selected.tagName+' / '+(selected.textContent||'').slice(0,40);
+      text.value=selected.children.length?'':(selected.textContent||'');
+      href.value=selected.tagName==='A'?(selected.getAttribute('href')||''):'';
+      selected.style.outline='2px solid #00e5c8';
     }
-    frame.onload=()=>{const d=frame.contentDocument;renderNavEditor();d.addEventListener('click',e=>{const navControl=e.target.closest('.nav-tab,.logo,.navcta');if(navControl&&!e.altKey)return;e.preventDefault();e.stopPropagation();selectElement(e.target)},true);
-      d.addEventListener('pointerdown',e=>{if(!moving||!selected||e.target!==selected)return;snapshot();const x=e.clientX,y=e.clientY,l=parseFloat(selected.style.left)||0,t=parseFloat(selected.style.top)||0;selected.style.position='relative';const mm=v=>{selected.style.left=l+v.clientX-x+'px';selected.style.top=t+v.clientY-y+'px'};const up=()=>{d.removeEventListener('pointermove',mm);d.removeEventListener('pointerup',up)};d.addEventListener('pointermove',mm);d.addEventListener('pointerup',up)},true);
-      d.addEventListener('keydown',e=>{
-        if(!selected)return;
-        const tag=(e.target.tagName||'').toLowerCase();
-        if(tag==='input'||tag==='textarea'||e.target.isContentEditable)return;
-        const step=e.shiftKey?10:1;
-        if(e.key==='ArrowUp'){snapshot();nudge(0,-step);e.preventDefault()}
-        else if(e.key==='ArrowDown'){snapshot();nudge(0,step);e.preventDefault()}
-        else if(e.key==='ArrowLeft'){snapshot();nudge(-step,0);e.preventDefault()}
-        else if(e.key==='ArrowRight'){snapshot();nudge(step,0);e.preventDefault()}
+
+    frame.onload=()=>{
+      const d=frame.contentDocument;
+      // クリックで選択。ただしナビゲーション用のリンク／onclick付き要素はそのまま本来の動作(ページ切替など)も実行させる
+      d.addEventListener('click',e=>{
+        const target=e.target;
+        selectElement(target);
+        // 実際のURLへ飛ぶ通常の<a>リンクだけは、プレビュー内で離脱しないよう防止する
+        const link=target.closest('a[href]');
+        if(link && !link.hasAttribute('onclick')){
+          const hrefVal=link.getAttribute('href')||'';
+          if(hrefVal && hrefVal!=='#' && !hrefVal.startsWith('#')) e.preventDefault();
+        }
+        // onclick属性(showPageなど)は preventDefault/stopPropagation しないので通常通り実行される
+      },true);
+
+      d.addEventListener('pointerdown',e=>{
+        if(!moving||!selected||e.target!==selected)return;
+        snapshot();
+        const x=e.clientX,y=e.clientY,l=parseFloat(selected.style.left)||0,t=parseFloat(selected.style.top)||0;
+        selected.style.position='relative';
+        const mm=v=>{selected.style.left=l+v.clientX-x+'px';selected.style.top=t+v.clientY-y+'px'};
+        const up=()=>{d.removeEventListener('pointermove',mm);d.removeEventListener('pointerup',up)};
+        d.addEventListener('pointermove',mm);d.addEventListener('pointerup',up)
       },true);
     };
-    const bind=(id,fn)=>document.querySelector('#'+id).onchange=e=>{if(!selected)return;snapshot();fn(e.target.value)};
-    bind('text',v=>selected.textContent=v);bind('fontSize',v=>selected.style.fontSize=v);bind('color',v=>selected.style.color=v);bind('background',v=>selected.style.backgroundColor=v);
+
+    const bind=(id,fn)=>{
+      const el=document.querySelector('#'+id);
+      el.addEventListener('input',e=>{if(!selected)return;snapshot();fn(e.target.value)});
+      el.addEventListener('change',e=>{if(!selected)return;snapshot();fn(e.target.value)});
+    };
+
+    bind('text',v=>selected.textContent=v);
+    bind('fontSize',v=>selected.style.fontSize=v);
+    bind('color',v=>selected.style.color=v);
+    bind('background',v=>selected.style.backgroundColor=v);
     bind('backgroundImage',v=>{selected.style.backgroundImage=`url("${v}")`;selected.style.backgroundSize='cover';selected.style.backgroundPosition='center'});
     bind('backgroundVideo',v=>{selected.style.position='relative';selected.style.overflow='hidden';selected.insertAdjacentHTML('afterbegin',`<video autoplay muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0"><source src="${v}"></video>`)});
-    bind('linkUrl',v=>{const link=selected.closest('a');if(link)link.href=v;else{const a=selected.ownerDocument.createElement('a');a.href=v;selected.replaceWith(a);a.append(selected);selectElement(a)}});
-    bind('width',v=>selected.style.width=v);bind('height',v=>selected.style.height=v);bind('padding',v=>selected.style.padding=v);bind('radius',v=>selected.style.borderRadius=v);
-    bind('display',v=>selected.style.display=v);bind('columns',v=>{selected.style.display='grid';selected.style.gridTemplateColumns=v});bind('gap',v=>selected.style.gap=v);
-    document.querySelector('#move').onclick=()=>{moving=!moving;move.textContent=moving?'移動中':'ドラッグ移動'};
-    document.querySelector('#resize').onclick=()=>{if(!selected)return;snapshot();selected.style.resize='both';selected.style.overflow='auto'};
+    bind('width',v=>selected.style.width=v);
+    bind('height',v=>selected.style.height=v);
+    bind('padding',v=>selected.style.padding=v);
+    bind('radius',v=>selected.style.borderRadius=v);
+    bind('textAlign',v=>selected.style.textAlign=v);
+    bind('href',v=>{if(selected.tagName==='A')selected.setAttribute('href',v)});
+
+    document.querySelector('#boldToggle').onclick=()=>{
+      if(!selected)return;snapshot();
+      const isBold=getComputedStyle(selected).fontWeight>=700;
+      selected.style.fontWeight=isBold?'400':'700';
+      boldToggle.classList.toggle('active-toggle',!isBold);
+    };
+    document.querySelector('#italicToggle').onclick=()=>{
+      if(!selected)return;snapshot();
+      const isItalic=getComputedStyle(selected).fontStyle==='italic';
+      selected.style.fontStyle=isItalic?'normal':'italic';
+      italicToggle.classList.toggle('active-toggle',!isItalic);
+    };
+
+    document.querySelector('#move').onclick=()=>{moving=!moving;move.textContent=moving?'移動中':'ドラッグ移動';move.classList.toggle('active-toggle',moving)};
     document.querySelector('#undo').onclick=()=>{const h=history.pop();if(h){h.el.innerHTML=h.html;h.el.style.cssText=h.style}};
-    document.querySelector('#duplicate').onclick=()=>{if(!selected)return;snapshot();selected.after(selected.cloneNode(true))};
-    document.querySelector('#remove').onclick=()=>{if(!selected)return;snapshot();const next=selected.parentElement;selected.remove();selected=next};
-    document.querySelector('#selectNavigation').onclick=()=>selectElement(frame.contentDocument.querySelector('.nav'));
-    document.querySelector('#selectPageBackground').onclick=()=>selectElement(frame.contentDocument.body);
-    document.querySelector('#addNav').onclick=()=>{const d=frame.contentDocument,id=prompt('移動先ページID（例: home）','home');if(!id)return;const tab=d.createElement('button');tab.className='nav-tab';tab.textContent='新しいページ';tab.setAttribute('onclick',`showPage('${id}')`);d.querySelector('.nav-tabs').append(tab);renderNavEditor()};
-    document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{const d=frame.contentDocument,target=selected||d.body,type=b.dataset.add;snapshot();if(type==='text')target.insertAdjacentHTML('beforeend','<div style="padding:16px;font-size:28px">新しい文字</div>');if(type==='section')target.insertAdjacentHTML('beforeend','<section style="min-height:240px;padding:32px"></section>');if(type==='link')target.insertAdjacentHTML('beforeend','<a href="https://" style="display:inline-block;padding:10px;color:inherit">新しいリンク</a>');if(type==='image'||type==='video'){file.accept=type==='image'?'image/*':'video/*';file.dataset.type=type;file.click()}});
-    file.onchange=()=>{const f=file.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const target=selected||frame.contentDocument.body;if(file.dataset.type==='image')target.insertAdjacentHTML('beforeend',`<img src="${r.result}" style="max-width:100%">`);else target.insertAdjacentHTML('beforeend',`<video src="${r.result}" controls style="max-width:100%"></video>`)};r.readAsDataURL(f)};
-    function isDangerousUrl(url){
-      if(!url) return false;
-      const v = String(url).trim();
-      return /^file:/i.test(v) || /^javascript:/i.test(v) || /^[a-zA-Z]:[\\/]/.test(v) || v.startsWith('\\\\') || v.startsWith('C:\\') || /^about:/i.test(v);
-    }
-    function sanitizedClone(d){
-      const clone = d.documentElement.cloneNode(true);
-      clone.querySelectorAll('[href]').forEach(el=>{ if(isDangerousUrl(el.getAttribute('href'))) el.setAttribute('href','#') });
-      clone.querySelectorAll('[src]').forEach(el=>{ if(isDangerousUrl(el.getAttribute('src'))) el.removeAttribute('src') });
-      clone.querySelectorAll('[style]').forEach(el=>{
-        let style = el.getAttribute('style') || '';
-        style = style.replace(/outline:[^;]+;?/gi, '');
-        style = style.replace(/background-image:\s*url\((['"]?)([^)'"]+)\1\)/gi, (m, _q, url) => isDangerousUrl(url) ? '' : m);
-        if(style.trim()) el.setAttribute('style', style); else el.removeAttribute('style');
-      });
-      return clone;
-    }
+
+    document.querySelector('#duplicate').onclick=()=>{
+      if(!selected)return;
+      const clone=selected.cloneNode(true);
+      clone.style.outline='';
+      selected.after(clone);
+    };
+    document.querySelector('#delete').onclick=()=>{
+      if(!selected)return;
+      if(!confirm('選択中の要素を削除しますか？'))return;
+      const el=selected;selected=null;selectedName.textContent='画面内の編集したい場所をクリック';
+      el.remove();
+    };
+
+    document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{
+      const d=frame.contentDocument,target=selected||d.body,type=b.dataset.add;
+      snapshot();
+      if(type==='text')target.insertAdjacentHTML('beforeend','<div style="padding:16px;font-size:28px">新しい文字</div>');
+      if(type==='section')target.insertAdjacentHTML('beforeend','<section style="min-height:240px;padding:32px"></section>');
+      if(type==='image'||type==='video'){file.accept=type==='image'?'image/*':'video/*';file.dataset.type=type;file.click()}
+    });
+
+    file.onchange=()=>{
+      const f=file.files[0];if(!f)return;
+      const r=new FileReader();
+      r.onload=()=>{
+        const target=selected||frame.contentDocument.body;
+        if(file.dataset.type==='image')target.insertAdjacentHTML('beforeend',`<img src="${r.result}" style="max-width:100%">`);
+        else target.insertAdjacentHTML('beforeend',`<video src="${r.result}" controls style="max-width:100%"></video>`)
+      };
+      r.readAsDataURL(f)
+    };
+
     document.querySelector('#publish').onclick=async()=>{
       const d=frame.contentDocument;
-      const clone=sanitizedClone(d);
-      const html='<!doctype html>\n'+clone.outerHTML;
+      d.querySelectorAll('[style*="outline"]').forEach(e=>e.style.outline='');
+      const html='<!doctype html>\n'+d.documentElement.outerHTML;
       const r=await fetch('/api/content',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({html})});
-      if(!r.ok){alert('保存に失敗しました');return}
-      const check=await fetch('/preview?t='+Date.now());
-      const checkHtml=await check.text();
-      const looksHealthy = checkHtml.includes('function showPage') && checkHtml.includes('id="page-home"') && checkHtml.includes('class="nav"');
-      if(!looksHealthy){
-        alert('公開しましたが、内容に問題がある可能性があります。表示が壊れていたら「初期状態に戻す」を押してください。');
-      } else {
-        alert('公開しました');
-      }
-    };
-    document.querySelector('#reset').onclick=async()=>{
-      if(!confirm('編集内容をすべて破棄して、初期状態（base.html）に戻します。よろしいですか？'))return;
-      const r=await fetch('/api/reset-content',{method:'POST'});
-      if(r.ok){
-        alert('初期状態に戻しました');
-        frame.src='/preview?t='+Date.now();
-      } else {
-        alert('リセットに失敗しました');
-      }
+      alert(r.ok?'公開しました':'保存に失敗しました');
+      if(selected) selected.style.outline='2px solid #00e5c8';
     };
   </script>
 </body>
