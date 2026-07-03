@@ -1875,8 +1875,198 @@
 })();
 </script>
 <!-- TXO_RESIZE_HITAREA_END -->
+<!-- TXO_FONT_SELECT_RESTORE_START -->
+<style>
+  #txoFontPresetSelect {
+    width: 100% !important;
+    background: #001f1a !important;
+    color: #ffffff !important;
+    border: 1px solid #167d6b !important;
+    border-radius: 7px !important;
+    padding: 7px 8px !important;
+    font-size: 12px !important;
+    margin-bottom: 7px !important;
+  }
+
+  #txoFontPresetLabel {
+    color: #a6d8cc !important;
+    font-size: 11px !important;
+    margin: 8px 0 5px 0 !important;
+  }
+</style>
+
+<script>
+(function () {
+  const FONT_PRESETS = [
+    { label: "指定なし", value: "" },
+    { label: "Noto Sans JP", value: "Noto Sans JP" },
+    { label: "Noto Serif JP", value: "Noto Serif JP" },
+    { label: "M PLUS Rounded 1c", value: "M PLUS Rounded 1c" },
+    { label: "Kosugi Maru", value: "Kosugi Maru" },
+    { label: "Zen Maru Gothic", value: "Zen Maru Gothic" },
+    { label: "Shippori Mincho", value: "Shippori Mincho" },
+    { label: "Sawarabi Gothic", value: "Sawarabi Gothic" },
+    { label: "Sawarabi Mincho", value: "Sawarabi Mincho" },
+    { label: "Meiryo", value: "Meiryo" },
+    { label: "Yu Gothic", value: "Yu Gothic" },
+    { label: "Roboto", value: "Roboto" },
+    { label: "Oswald", value: "Oswald" },
+    { label: "Playfair Display", value: "Playfair Display" }
+  ];
+
+  function getFrame() {
+    return document.querySelector("iframe");
+  }
+
+  function getEditorDocument() {
+    const frame = getFrame();
+
+    if (frame && frame.contentDocument) {
+      return frame.contentDocument;
+    }
+
+    return document;
+  }
+
+  function getEditableRoot() {
+    const doc = getEditorDocument();
+
+    return (
+      doc.querySelector("[data-editor-root]") ||
+      doc.querySelector("#editor-root") ||
+      doc.querySelector("#canvas") ||
+      doc.querySelector(".canvas") ||
+      doc.querySelector("[contenteditable='true']") ||
+      doc.body
+    );
+  }
+
+  function getSelectedElement() {
+    const doc = getEditorDocument();
+    return doc.querySelector(".txo-selected-element");
+  }
+
+  function loadGoogleFont(fontName) {
+    const name = String(fontName || "").trim();
+
+    if (!name) return;
+
+    const id = "txo-google-font-" + name.replace(/[^a-zA-Z0-9]/g, "-");
+
+    function appendFontLink(targetDoc) {
+      if (!targetDoc || !targetDoc.head) return;
+      if (targetDoc.getElementById(id)) return;
+
+      const link = targetDoc.createElement("link");
+      link.id = id;
+      link.rel = "stylesheet";
+      link.href = "https://fonts.googleapis.com/css2?family=" + encodeURIComponent(name).replace(/%20/g, "+") + ":wght@300;400;500;600;700;800;900&display=swap";
+      targetDoc.head.appendChild(link);
+    }
+
+    appendFontLink(document);
+    appendFontLink(getEditorDocument());
+  }
+
+  function applyFont(fontName) {
+    const name = String(fontName || "").trim();
+
+    const target = getSelectedElement() || getEditableRoot();
+
+    if (!target) {
+      alert("フォントを反映する対象が見つかりません。");
+      return;
+    }
+
+    if (!name) {
+      target.style.fontFamily = "";
+      alert("フォント指定を解除しました。");
+      return;
+    }
+
+    loadGoogleFont(name);
+
+    target.style.fontFamily = "'" + name + "', sans-serif";
+
+    const input = document.getElementById("txoFontInput");
+    if (input) input.value = name;
+
+    alert("フォントを反映しました: " + name);
+  }
+
+  function installFontSelect() {
+    const input = document.getElementById("txoFontInput");
+
+    if (!input) return false;
+
+    if (document.getElementById("txoFontPresetSelect")) return true;
+
+    const label = document.createElement("div");
+    label.id = "txoFontPresetLabel";
+    label.textContent = "フォント選択";
+
+    const select = document.createElement("select");
+    select.id = "txoFontPresetSelect";
+
+    FONT_PRESETS.forEach(font => {
+      const option = document.createElement("option");
+      option.value = font.value;
+      option.textContent = font.label;
+      select.appendChild(option);
+    });
+
+    input.parentElement.insertBefore(label, input);
+    input.parentElement.insertBefore(select, input);
+
+    select.addEventListener("change", function () {
+      const value = select.value;
+
+      if (input) {
+        input.value = value;
+      }
+
+      applyFont(value);
+    });
+
+    const applyBtn = document.getElementById("txoApplyFontBtn");
+
+    if (applyBtn && !applyBtn.dataset.fontSelectFixed) {
+      applyBtn.dataset.fontSelectFixed = "1";
+
+      applyBtn.addEventListener("click", function () {
+        const inputValue = input ? input.value.trim() : "";
+        applyFont(inputValue);
+      }, true);
+    }
+
+    return true;
+  }
+
+  if (!installFontSelect()) {
+    let count = 0;
+
+    const timer = setInterval(function () {
+      count++;
+
+      if (installFontSelect() || count > 80) {
+        clearInterval(timer);
+      }
+    }, 100);
+  }
+
+  const frame = getFrame();
+
+  if (frame) {
+    frame.addEventListener("load", function () {
+      setTimeout(installFontSelect, 300);
+    });
+  }
+})();
+</script>
+<!-- TXO_FONT_SELECT_RESTORE_END -->
 </body>
 </html>
+
 
 
 
