@@ -1474,8 +1474,410 @@
 })();
 </script>
 <!-- TXO_DRAFT_BUTTONS_END -->
+<!-- TXO_RESIZE_HITAREA_START -->
+<style>
+  #txoResizeOverlay {
+    position: fixed !important;
+    display: none;
+    border: 2px solid #00e0c5 !important;
+    box-sizing: border-box !important;
+    z-index: 2147483600 !important;
+    pointer-events: none !important;
+  }
+
+  .txo-resize-handle,
+  .txo-resize-edge {
+    position: absolute !important;
+    pointer-events: auto !important;
+    z-index: 2147483601 !important;
+  }
+
+  .txo-resize-handle {
+    width: 14px !important;
+    height: 14px !important;
+    background: #001f1a !important;
+    border: 2px solid #00e0c5 !important;
+    border-radius: 3px !important;
+    box-sizing: border-box !important;
+  }
+
+  .txo-resize-edge[data-dir="n"] {
+    left: 12px !important;
+    right: 12px !important;
+    top: -8px !important;
+    height: 16px !important;
+    cursor: ns-resize !important;
+  }
+
+  .txo-resize-edge[data-dir="s"] {
+    left: 12px !important;
+    right: 12px !important;
+    bottom: -8px !important;
+    height: 16px !important;
+    cursor: ns-resize !important;
+  }
+
+  .txo-resize-edge[data-dir="e"] {
+    top: 12px !important;
+    bottom: 12px !important;
+    right: -8px !important;
+    width: 16px !important;
+    cursor: ew-resize !important;
+  }
+
+  .txo-resize-edge[data-dir="w"] {
+    top: 12px !important;
+    bottom: 12px !important;
+    left: -8px !important;
+    width: 16px !important;
+    cursor: ew-resize !important;
+  }
+
+  .txo-resize-handle[data-dir="nw"] {
+    left: -8px !important;
+    top: -8px !important;
+    cursor: nwse-resize !important;
+  }
+
+  .txo-resize-handle[data-dir="ne"] {
+    right: -8px !important;
+    top: -8px !important;
+    cursor: nesw-resize !important;
+  }
+
+  .txo-resize-handle[data-dir="sw"] {
+    left: -8px !important;
+    bottom: -8px !important;
+    cursor: nesw-resize !important;
+  }
+
+  .txo-resize-handle[data-dir="se"] {
+    right: -8px !important;
+    bottom: -8px !important;
+    cursor: nwse-resize !important;
+  }
+
+  .txo-selected-element {
+    outline: 2px solid #00e0c5 !important;
+    outline-offset: 2px !important;
+  }
+</style>
+
+<script>
+(function () {
+  let selectedElement = null;
+  let selectedDoc = null;
+  let resizing = false;
+
+  let startX = 0;
+  let startY = 0;
+  let startWidth = 0;
+  let startHeight = 0;
+  let startLeft = 0;
+  let startTop = 0;
+  let resizeDir = "";
+  let canMoveLeftTop = false;
+
+  function getFrame() {
+    return document.querySelector("iframe");
+  }
+
+  function getEditorDocument() {
+    const frame = getFrame();
+
+    if (frame && frame.contentDocument) {
+      return frame.contentDocument;
+    }
+
+    return document;
+  }
+
+  function ensureOverlay() {
+    let overlay = document.getElementById("txoResizeOverlay");
+
+    if (overlay) {
+      return overlay;
+    }
+
+    overlay = document.createElement("div");
+    overlay.id = "txoResizeOverlay";
+
+    overlay.innerHTML = `
+      <div class="txo-resize-edge" data-dir="n"></div>
+      <div class="txo-resize-edge" data-dir="s"></div>
+      <div class="txo-resize-edge" data-dir="e"></div>
+      <div class="txo-resize-edge" data-dir="w"></div>
+
+      <div class="txo-resize-handle" data-dir="nw"></div>
+      <div class="txo-resize-handle" data-dir="ne"></div>
+      <div class="txo-resize-handle" data-dir="sw"></div>
+      <div class="txo-resize-handle" data-dir="se"></div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    overlay.querySelectorAll("[data-dir]").forEach(handle => {
+      handle.addEventListener("mousedown", startResize, true);
+    });
+
+    return overlay;
+  }
+
+  function getScreenRect(el) {
+    const frame = getFrame();
+    const r = el.getBoundingClientRect();
+
+    if (frame && frame.contentDocument === selectedDoc) {
+      const fr = frame.getBoundingClientRect();
+
+      return {
+        left: fr.left + r.left,
+        top: fr.top + r.top,
+        width: r.width,
+        height: r.height
+      };
+    }
+
+    return {
+      left: r.left,
+      top: r.top,
+      width: r.width,
+      height: r.height
+    };
+  }
+
+  function updateOverlay() {
+    const overlay = ensureOverlay();
+
+    if (!selectedElement || !selectedDoc || !selectedDoc.body.contains(selectedElement)) {
+      overlay.style.display = "none";
+      return;
+    }
+
+    const r = getScreenRect(selectedElement);
+
+    overlay.style.display = "block";
+    overlay.style.left = r.left + "px";
+    overlay.style.top = r.top + "px";
+    overlay.style.width = r.width + "px";
+    overlay.style.height = r.height + "px";
+  }
+
+  function clearSelection() {
+    if (!selectedDoc) return;
+
+    selectedDoc.querySelectorAll(".txo-selected-element").forEach(el => {
+      el.classList.remove("txo-selected-element");
+    });
+  }
+
+  function selectElement(el) {
+    if (!el || !el.tagName) return;
+
+    const tag = el.tagName.toLowerCase();
+
+    if (tag === "html" || tag === "body") return;
+
+    selectedDoc = getEditorDocument();
+
+    clearSelection();
+
+    selectedElement = el;
+    selectedElement.classList.add("txo-selected-element");
+
+    updateOverlay();
+  }
+
+  function setupSelection() {
+    const doc = getEditorDocument();
+
+    if (!doc || doc.__txoResizeHitareaReady) return;
+
+    doc.__txoResizeHitareaReady = true;
+
+    doc.addEventListener("click", function (e) {
+      if (!e.target || !e.target.tagName) return;
+
+      selectElement(e.target);
+    }, true);
+
+    if (doc.defaultView) {
+      doc.defaultView.addEventListener("scroll", updateOverlay, true);
+      doc.defaultView.addEventListener("resize", updateOverlay, true);
+    }
+  }
+
+  function parsePx(value) {
+    const n = parseFloat(value);
+
+    if (Number.isFinite(n)) {
+      return n;
+    }
+
+    return 0;
+  }
+
+  function startResize(e) {
+    if (!selectedElement) {
+      return;
+    }
+
+    const computed = selectedDoc.defaultView.getComputedStyle(selectedElement);
+
+    resizeDir = e.target.getAttribute("data-dir") || "";
+    startX = e.clientX;
+    startY = e.clientY;
+
+    const r = selectedElement.getBoundingClientRect();
+
+    startWidth = r.width;
+    startHeight = r.height;
+
+    startLeft = parsePx(computed.left);
+    startTop = parsePx(computed.top);
+
+    canMoveLeftTop =
+      computed.position === "absolute" ||
+      computed.position === "fixed" ||
+      selectedElement.style.left ||
+      selectedElement.style.top;
+
+    if (computed.display === "inline") {
+      selectedElement.style.display = "inline-block";
+    }
+
+    selectedElement.style.boxSizing = "border-box";
+
+    resizing = true;
+
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = getComputedStyle(e.target).cursor;
+
+    document.addEventListener("mousemove", moveResize, true);
+    document.addEventListener("mouseup", stopResize, true);
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+
+    return false;
+  }
+
+  function moveResize(e) {
+    if (!resizing || !selectedElement) return;
+
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+
+    let newWidth = startWidth;
+    let newHeight = startHeight;
+    let newLeft = startLeft;
+    let newTop = startTop;
+
+    if (resizeDir.includes("e")) {
+      newWidth = startWidth + dx;
+    }
+
+    if (resizeDir.includes("s")) {
+      newHeight = startHeight + dy;
+    }
+
+    if (resizeDir.includes("w")) {
+      newWidth = startWidth - dx;
+
+      if (canMoveLeftTop) {
+        newLeft = startLeft + dx;
+      }
+    }
+
+    if (resizeDir.includes("n")) {
+      newHeight = startHeight - dy;
+
+      if (canMoveLeftTop) {
+        newTop = startTop + dy;
+      }
+    }
+
+    newWidth = Math.max(30, newWidth);
+    newHeight = Math.max(20, newHeight);
+
+    selectedElement.style.width = newWidth + "px";
+
+    if (resizeDir.includes("n") || resizeDir.includes("s")) {
+      selectedElement.style.height = newHeight + "px";
+    }
+
+    if (canMoveLeftTop && resizeDir.includes("w")) {
+      selectedElement.style.left = newLeft + "px";
+    }
+
+    if (canMoveLeftTop && resizeDir.includes("n")) {
+      selectedElement.style.top = newTop + "px";
+    }
+
+    updateOverlay();
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+
+    return false;
+  }
+
+  function stopResize(e) {
+    if (!resizing) return;
+
+    resizing = false;
+
+    document.body.style.userSelect = "";
+    document.body.style.cursor = "";
+
+    document.removeEventListener("mousemove", moveResize, true);
+    document.removeEventListener("mouseup", stopResize, true);
+
+    updateOverlay();
+
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+    }
+
+    return false;
+  }
+
+  setupSelection();
+  ensureOverlay();
+
+  const frame = getFrame();
+
+  if (frame) {
+    frame.addEventListener("load", function () {
+      setTimeout(function () {
+        selectedElement = null;
+        selectedDoc = getEditorDocument();
+        setupSelection();
+        updateOverlay();
+      }, 300);
+    });
+  }
+
+  window.addEventListener("resize", updateOverlay);
+  window.addEventListener("scroll", updateOverlay, true);
+
+  setInterval(function () {
+    setupSelection();
+    updateOverlay();
+  }, 1000);
+})();
+</script>
+<!-- TXO_RESIZE_HITAREA_END -->
 </body>
 </html>
+
 
 
 
