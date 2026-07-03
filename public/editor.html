@@ -3499,8 +3499,477 @@
   });
 })();
 </script>
+<style id="selected-width-link-style">
+  .selected-width-resize-handle {
+    position: absolute !important;
+    width: 12px !important;
+    min-width: 12px !important;
+    background: #00ffd5 !important;
+    border: 1px solid #001f1a !important;
+    cursor: ew-resize !important;
+    z-index: 2147483647 !important;
+    box-sizing: border-box !important;
+  }
+
+  .selected-width-resize-handle::after {
+    content: "↔";
+    color: #001f1a;
+    font-size: 10px;
+    font-weight: bold;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  [data-link-url] {
+    cursor: pointer;
+  }
+
+  #selectedWidthLinkTools {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    margin: 4px;
+    flex-wrap: wrap;
+  }
+
+  #selectedWidthLinkTools button {
+    white-space: nowrap;
+  }
+</style>
+
+<script id="selected-width-link-patch-v2">
+(function () {
+  if (window.__selectedWidthLinkPatchV2) return;
+  window.__selectedWidthLinkPatchV2 = true;
+
+  let selectedTarget = null;
+  let widthHandle = null;
+
+  function normalizeText(text) {
+    return (text || "").replace(/\s+/g, "").trim();
+  }
+
+  function normalizeUrl(url) {
+    url = (url || "").trim();
+
+    if (!url) return "";
+
+    if (
+      url.startsWith("http://") ||
+      url.startsWith("https://") ||
+      url.startsWith("mailto:") ||
+      url.startsWith("tel:") ||
+      url.startsWith("#") ||
+      url.startsWith("/")
+    ) {
+      return url;
+    }
+
+    return "https://" + url;
+  }
+
+  function getEditorFrame() {
+    return document.getElementById("editorFrame") || document.querySelector("iframe");
+  }
+
+  function getFrameDocument() {
+    const frame = getEditorFrame();
+    if (!frame) return null;
+
+    try {
+      return frame.contentDocument || frame.contentWindow.document;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function isBadTarget(el) {
+    if (!el) return true;
+    if (el.classList && el.classList.contains("selected-width-resize-handle")) return true;
+
+    const tag = (el.tagName || "").toLowerCase();
+
+    return tag === "html" || tag === "body" || tag === "script" || tag === "style";
+  }
+
+  function findSelectedElement() {
+    const doc = getFrameDocument();
+    const frame = getEditorFrame();
+
+    if (!doc) return selectedTarget;
+
+    if (window.selectedElement && window.selectedElement.ownerDocument === doc) {
+      return window.selectedElement;
+    }
+
+    if (
+      frame &&
+      frame.contentWindow &&
+      frame.contentWindow.selectedElement &&
+      frame.contentWindow.selectedElement.ownerDocument === doc
+    ) {
+      return frame.contentWindow.selectedElement;
+    }
+
+    const selected =
+      doc.querySelector(".selected") ||
+      doc.querySelector(".is-selected") ||
+      doc.querySelector(".editing-selected") ||
+      doc.querySelector(".editor-selected") ||
+      doc.querySelector(".selected-element") ||
+      doc.querySelector("[data-selected='true']");
+
+    if (selected) return selected;
+
+    return selectedTarget;
+  }
+
+  function makeResizableBase(el) {
+    if (!el || !el.style) return;
+
+    const doc = el.ownerDocument;
+    const cs = doc.defaultView.getComputedStyle(el);
+
+    el.style.boxSizing = "border-box";
+    el.style.maxWidth = "none";
+    el.style.minWidth = "20px";
+
+    if (cs.display === "inline") {
+      el.style.display = "inline-block";
+    }
+
+    if (!el.style.width || el.style.width === "auto") {
+      el.style.width = Math.ceil(el.getBoundingClientRect().width) + "px";
+    }
+  }
+
+  function removeWidthHandle() {
+    const doc = getFrameDocument();
+
+    if (widthHandle && widthHandle.parentNode) {
+      widthHandle.remove();
+    }
+
+    widthHandle = null;
+
+    if (doc) {
+      doc.querySelectorAll(".selected-width-resize-handle").forEach(function (el) {
+        el.remove();
+      });
+    }
+  }
+
+  function updateWidthHandle() {
+    const doc = getFrameDocument();
+    const el = findSelectedElement();
+
+    if (!doc || isBadTarget(el)) {
+      removeWidthHandle();
+      return;
+    }
+
+    selectedTarget = el;
+    makeResizableBase(selectedTarget);
+
+    if (!widthHandle || widthHandle.ownerDocument !== doc) {
+      removeWidthHandle();
+
+      widthHandle = doc.createElement("div");
+      widthHandle.className = "selected-width-resize-handle";
+      widthHandle.setAttribute("data-editor-helper", "width-resize");
+
+      doc.body.appendChild(widthHandle);
+
+      widthHandle.addEventListener("pointerdown", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const target = selectedTarget;
+        if (!target) return;
+
+        makeResizableBase(target);
+
+        const startX = e.clientX;
+        const startWidth = target.getBoundingClientRect().width;
+
+        function onMove(ev) {
+          const nextWidth = Math.max(20, Math.round(startWidth + ev.clientX - startX));
+          target.style.width = nextWidth + "px";
+          target.style.maxWidth = "none";
+          updateWidthHandle();
+        }
+
+        function onUp() {
+          doc.removeEventListener("pointermove", onMove, true);
+          doc.removeEventListener("pointerup", onUp, true);
+          updateWidthHandle();
+        }
+
+        doc.addEventListener("pointermove", onMove, true);
+        doc.addEventListener("pointerup", onUp, true);
+      }, true);
+    }
+
+    const rect = selectedTarget.getBoundingClientRect();
+    const scrollX = doc.defaultView.scrollX || doc.documentElement.scrollLeft || doc.body.scrollLeft || 0;
+    const scrollY = doc.defaultView.scrollY || doc.documentElement.scrollTop || doc.body.scrollTop || 0;
+
+    widthHandle.style.left = Math.round(rect.right + scrollX - 6) + "px";
+    widthHandle.style.top = Math.round(rect.top + scrollY) + "px";
+    widthHandle.style.height = Math.max(24, Math.round(rect.height)) + "px";
+  }
+
+  function bindFrameSelection() {
+    const doc = getFrameDocument();
+    if (!doc || doc.__selectedWidthLinkBound) return;
+
+    doc.__selectedWidthLinkBound = true;
+
+    doc.addEventListener("click", function (e) {
+      if (e.target && e.target.classList && e.target.classList.contains("selected-width-resize-handle")) {
+        return;
+      }
+
+      selectedTarget = e.target;
+      setTimeout(updateWidthHandle, 0);
+    }, true);
+
+    doc.addEventListener("keyup", updateWidthHandle, true);
+    doc.addEventListener("mouseup", updateWidthHandle, true);
+    doc.addEventListener("scroll", updateWidthHandle, true);
+
+    doc.defaultView.addEventListener("resize", updateWidthHandle);
+  }
+
+  function widenSelected(px) {
+    const el = findSelectedElement();
+
+    if (!el) {
+      alert("横幅を変える場所を先に選択してください");
+      return;
+    }
+
+    makeResizableBase(el);
+
+    const current = el.getBoundingClientRect().width;
+    el.style.width = Math.max(20, Math.round(current + px)) + "px";
+    el.style.maxWidth = "none";
+
+    selectedTarget = el;
+    updateWidthHandle();
+  }
+
+  function setSelectedWidth() {
+    const el = findSelectedElement();
+
+    if (!el) {
+      alert("横幅を変える場所を先に選択してください");
+      return;
+    }
+
+    makeResizableBase(el);
+
+    const current = Math.round(el.getBoundingClientRect().width);
+    const input = prompt("横幅をpxで入力してください", String(current));
+
+    if (input === null) return;
+
+    const width = parseInt(input, 10);
+
+    if (!width || width < 20) {
+      alert("20以上の数字を入力してください");
+      return;
+    }
+
+    el.style.width = width + "px";
+    el.style.maxWidth = "none";
+
+    selectedTarget = el;
+    updateWidthHandle();
+  }
+
+  function setSelectedLink() {
+    const el = findSelectedElement();
+
+    if (!el) {
+      alert("リンクを付ける場所を先に選択してください");
+      return;
+    }
+
+    const current = el.getAttribute("data-link-url") || "";
+    const input = prompt("この選択場所に設定するリンクURLを入力してください", current);
+
+    if (input === null) return;
+
+    const url = normalizeUrl(input);
+
+    if (!url) {
+      alert("URLが空です");
+      return;
+    }
+
+    el.setAttribute("data-link-url", url);
+    el.setAttribute("title", "リンク: " + url);
+    el.style.cursor = "pointer";
+
+    alert("この選択場所にリンクを設定しました");
+  }
+
+  function removeSelectedLink() {
+    const el = findSelectedElement();
+
+    if (!el) {
+      alert("リンクを解除する場所を先に選択してください");
+      return;
+    }
+
+    el.removeAttribute("data-link-url");
+    el.removeAttribute("title");
+    el.style.cursor = "";
+
+    alert("この選択場所のリンクを解除しました");
+  }
+
+  function showSelectedLink() {
+    const el = findSelectedElement();
+
+    if (!el) {
+      alert("確認する場所を先に選択してください");
+      return;
+    }
+
+    const url = el.getAttribute("data-link-url");
+
+    if (url) {
+      alert("この場所のリンク:\n" + url);
+    } else {
+      alert("この場所にはリンクがありません");
+    }
+  }
+
+  function addTools() {
+    if (document.getElementById("selectedWidthLinkTools")) return;
+
+    const wrap = document.createElement("div");
+    wrap.id = "selectedWidthLinkTools";
+
+    const buttons = [
+      ["横幅＋", function () { widenSelected(80); }],
+      ["横幅－", function () { widenSelected(-80); }],
+      ["幅を指定", setSelectedWidth],
+      ["選択にリンク", setSelectedLink],
+      ["リンク確認", showSelectedLink],
+      ["リンク解除", removeSelectedLink]
+    ];
+
+    buttons.forEach(function (item) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = item[0];
+      btn.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        item[1]();
+      });
+      wrap.appendChild(btn);
+    });
+
+    const toolbar =
+      document.querySelector("#editorTabToolbar .tab-panel.active") ||
+      document.getElementById("editorTabToolbar") ||
+      document.querySelector(".toolbar") ||
+      document.body;
+
+    if (toolbar.firstChild) {
+      toolbar.insertBefore(wrap, toolbar.firstChild);
+    } else {
+      toolbar.appendChild(wrap);
+    }
+  }
+
+  function cleanHelpersBeforeSave() {
+    const doc = getFrameDocument();
+
+    if (!doc) return;
+
+    doc.querySelectorAll(".selected-width-resize-handle, [data-editor-helper='width-resize']").forEach(function (el) {
+      el.remove();
+    });
+  }
+
+  function bindSaveCleaner() {
+    document.addEventListener("click", function (e) {
+      const btn = e.target.closest && e.target.closest("button");
+      if (!btn) return;
+
+      const text = normalizeText(btn.textContent);
+
+      if (
+        text.includes("保存") ||
+        text.includes("公開") ||
+        text.includes("下書き保存")
+      ) {
+        cleanHelpersBeforeSave();
+      }
+    }, true);
+  }
+
+  function enablePublicLinks() {
+    // 公開ページで data-link-url をクリックしたら開く
+    document.addEventListener("click", function (e) {
+      const linked = e.target.closest && e.target.closest("[data-link-url]");
+      if (!linked) return;
+
+      // 編集ツールがある画面では、クリックしてもページ遷移しない
+      if (document.getElementById("editorTabToolbar") || document.getElementById("selectedWidthLinkTools")) {
+        return;
+      }
+
+      const url = linked.getAttribute("data-link-url");
+      if (!url) return;
+
+      window.open(url, "_blank", "noopener");
+    });
+  }
+
+  function init() {
+    addTools();
+    bindFrameSelection();
+    bindSaveCleaner();
+    enablePublicLinks();
+
+    const frame = getEditorFrame();
+
+    if (frame) {
+      frame.addEventListener("load", function () {
+        bindFrameSelection();
+        setTimeout(updateWidthHandle, 100);
+      });
+    }
+
+    setInterval(function () {
+      bindFrameSelection();
+      updateWidthHandle();
+    }, 800);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+
+  window.widenSelected = widenSelected;
+  window.setSelectedWidth = setSelectedWidth;
+  window.setSelectedLink = setSelectedLink;
+  window.removeSelectedLink = removeSelectedLink;
+})();
+</script>
 </body>
 </html>
+
 
 
 
