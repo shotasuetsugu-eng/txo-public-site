@@ -280,412 +280,64 @@
       }
     };
   </script>
-<!-- TXO_EXTRA_EDITOR_TOOLS_START -->
-<style>
-  #txoExtraEditorTools {
-    position: fixed;
-    right: 16px;
-    bottom: 16px;
-    z-index: 999999;
-    width: 280px;
-    padding: 12px;
-    background: #ffffff;
-    border: 1px solid #d0d7de;
-    border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.18);
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-size: 13px;
-  }
-
-  #txoExtraEditorTools button,
-  #txoExtraEditorTools input {
-    box-sizing: border-box;
-    font-size: 13px;
-  }
-
-  #txoExtraEditorTools button {
-    cursor: pointer;
-    border: 1px solid #c9d1d9;
-    background: #f6f8fa;
-    border-radius: 8px;
-    padding: 7px 9px;
-  }
-
-  #txoExtraEditorTools button:hover {
-    background: #eef2f6;
-  }
-
-  #txoExtraEditorTools input {
-    width: 100%;
-    border: 1px solid #c9d1d9;
-    border-radius: 8px;
-    padding: 7px 8px;
-  }
-
-  #txoExtraEditorTools .txoRow {
-    display: flex;
-    gap: 6px;
-    margin-top: 8px;
-  }
-
-  #txoExtraEditorTools .txoRow button {
-    flex: 1;
-  }
-
-  #txoExtraEditorTools .txoStatus {
-    margin-top: 8px;
-    padding: 8px;
-    border-radius: 8px;
-    background: #f6f8fa;
-    color: #24292f;
-    word-break: break-all;
-    line-height: 1.4;
-  }
-
-  #txoExtraEditorTools .txoTitle {
-    font-weight: 700;
-    margin-bottom: 8px;
-  }
-
-  #txoExtraEditorTools .txoSmall {
-    font-size: 12px;
-    color: #57606a;
-    margin-top: 6px;
-    line-height: 1.4;
-  }
-
-  .txo-selected-element {
-    outline: 2px solid #0969da !important;
-    outline-offset: 2px !important;
-  }
-</style>
-
-<script>
-(function () {
-  const TOOL_ID = "txoExtraEditorTools";
-  const STORAGE_KEY = "txo_editor_draft_html_v1";
-  let selectedElement = null;
-
-  if (document.getElementById(TOOL_ID)) return;
-
-  function getFrame() {
-    return document.querySelector("iframe");
-  }
-
-  function getEditorDocument() {
-    const frame = getFrame();
-    if (frame && frame.contentDocument) {
-      return frame.contentDocument;
-    }
-    return document;
-  }
-
-  function getEditableRoot() {
-    const doc = getEditorDocument();
-
-    const root =
-      doc.querySelector("[data-editor-root]") ||
-      doc.querySelector("#editor-root") ||
-      doc.querySelector("#canvas") ||
-      doc.querySelector(".canvas") ||
-      doc.querySelector("[contenteditable='true']") ||
-      doc.body;
-
-    return root;
-  }
-
-  function clearSelectedOutline() {
-    const doc = getEditorDocument();
-    doc.querySelectorAll(".txo-selected-element").forEach(el => {
-      el.classList.remove("txo-selected-element");
-    });
-  }
-
-  function setSelectedElement(el) {
-    if (!el) return;
-
-    const doc = getEditorDocument();
-
-    if (el === doc.body || el === doc.documentElement) {
-      return;
-    }
-
-    clearSelectedOutline();
-    selectedElement = el;
-    selectedElement.classList.add("txo-selected-element");
-    updateLinkStatus();
-  }
-
-  function findLinkElement(el) {
-    if (!el) return null;
-    if (el.tagName && el.tagName.toLowerCase() === "a") return el;
-    if (el.closest) return el.closest("a");
-    return null;
-  }
-
-  function updateLinkStatus() {
-    const status = document.getElementById("txoLinkStatus");
-    if (!status) return;
-
-    const link = findLinkElement(selectedElement);
-
-    if (link && link.getAttribute("href")) {
-      status.textContent = "リンクあり: " + link.getAttribute("href");
-      status.style.background = "#ddf4ff";
-      return;
-    }
-
-    status.textContent = "リンクなし";
-    status.style.background = "#f6f8fa";
-  }
-
-  function loadGoogleFont(fontName) {
-    const safeName = String(fontName || "").trim();
-    if (!safeName) return;
-
-    const id = "txo-google-font-" + safeName.replace(/[^a-zA-Z0-9]/g, "-");
-
-    if (document.getElementById(id)) return;
-
-    const link = document.createElement("link");
-    link.id = id;
-    link.rel = "stylesheet";
-    link.href = "https://fonts.googleapis.com/css2?family=" + encodeURIComponent(safeName).replace(/%20/g, "+") + ":wght@300;400;500;600;700&display=swap";
-    document.head.appendChild(link);
-  }
-
-  function applyFont() {
-    const input = document.getElementById("txoFontInput");
-    const fontName = input ? input.value.trim() : "";
-
-    if (!fontName) {
-      alert("フォント名を入力してください。例: Noto Sans JP / M PLUS Rounded 1c / Kosugi Maru");
-      return;
-    }
-
-    loadGoogleFont(fontName);
-
-    const target = selectedElement || getEditableRoot();
-    target.style.fontFamily = "'" + fontName + "', sans-serif";
-
-    alert("フォントを反映しました: " + fontName);
-  }
-
-  function saveDraft() {
-    const root = getEditableRoot();
-
-    localStorage.setItem(STORAGE_KEY, root.innerHTML);
-    alert("下書きを保存しました。公開とは別で、このブラウザ内に保存されています。");
-  }
-
-  function loadDraft() {
-    const saved = localStorage.getItem(STORAGE_KEY);
-
-    if (!saved) {
-      alert("保存された下書きがありません。");
-      return;
-    }
-
-    if (!confirm("保存した下書きを読み込みますか？ 今の編集内容は上書きされます。")) {
-      return;
-    }
-
-    const root = getEditableRoot();
-    root.innerHTML = saved;
-
-    selectedElement = null;
-    clearSelectedOutline();
-    updateLinkStatus();
-
-    alert("下書きを読み込みました。");
-  }
-
-  function clearDraft() {
-    if (!confirm("保存した下書きを削除しますか？")) return;
-
-    localStorage.removeItem(STORAGE_KEY);
-    alert("下書きを削除しました。");
-  }
-
-  function setupEditorEvents() {
-    const doc = getEditorDocument();
-
-    doc.addEventListener("click", function (e) {
-      const tag = e.target && e.target.tagName ? e.target.tagName.toLowerCase() : "";
-
-      if (tag === "body" || tag === "html") return;
-
-      setSelectedElement(e.target);
-    }, true);
-
-    doc.addEventListener("keyup", updateLinkStatus, true);
-    doc.addEventListener("mouseup", updateLinkStatus, true);
-  }
-
-  function setupDeleteShortcut() {
-    document.addEventListener("keydown", function (e) {
-      const key = e.key;
-
-      if (key !== "Backspace" && key !== "Delete") return;
-
-      const active = document.activeElement;
-      const isTyping =
-        active &&
-        (
-          active.tagName === "INPUT" ||
-          active.tagName === "TEXTAREA" ||
-          active.isContentEditable
-        );
-
-      if (isTyping) return;
-
-      if (!selectedElement) return;
-
-      const doc = getEditorDocument();
-
-      if (selectedElement === doc.body || selectedElement === doc.documentElement) return;
-
-      e.preventDefault();
-
-      if (confirm("選択中の要素を削除しますか？")) {
-        selectedElement.remove();
-        selectedElement = null;
-        updateLinkStatus();
-      }
-    });
-  }
-
-  function createTools() {
-    const panel = document.createElement("div");
-    panel.id = TOOL_ID;
-
-    panel.innerHTML = `
-      <div class="txoTitle">編集補助</div>
-
-      <input id="txoFontInput" type="text" placeholder="フォント名を入力 例: Noto Sans JP">
-
-      <div class="txoRow">
-        <button type="button" id="txoApplyFontBtn">フォント反映</button>
-      </div>
-
-      <div class="txoRow">
-        <button type="button" id="txoSaveDraftBtn">保存</button>
-        <button type="button" id="txoLoadDraftBtn">読込</button>
-        <button type="button" id="txoClearDraftBtn">削除</button>
-      </div>
-
-      <div id="txoLinkStatus" class="txoStatus">リンクなし</div>
-
-      <div class="txoSmall">
-        要素をクリックすると選択できます。画像などはBackspace/Deleteで削除できます。
-      </div>
-    `;
-
-    document.body.appendChild(panel);
-
-    document.getElementById("txoApplyFontBtn").addEventListener("click", applyFont);
-    document.getElementById("txoSaveDraftBtn").addEventListener("click", saveDraft);
-    document.getElementById("txoLoadDraftBtn").addEventListener("click", loadDraft);
-    document.getElementById("txoClearDraftBtn").addEventListener("click", clearDraft);
-  }
-
-  createTools();
-  setupEditorEvents();
-  setupDeleteShortcut();
-  updateLinkStatus();
-
-  const frame = getFrame();
-  if (frame) {
-    frame.addEventListener("load", function () {
-      setupEditorEvents();
-      updateLinkStatus();
-    });
-  }
-})();
-</script>
-<!-- TXO_EXTRA_EDITOR_TOOLS_END -->
-<!-- TXO_POINTER_DRAG_PANEL_START -->
+<!-- TXO_CLEAN_DRAG_HELPER_START -->
 <style>
   #txoExtraEditorTools {
     position: fixed !important;
     left: 24px !important;
-    top: 180px !important;
+    top: 170px !important;
     right: auto !important;
     bottom: auto !important;
-    z-index: 999999 !important;
-
-    width: 260px !important;
-    max-height: 380px !important;
-    overflow: auto !important;
-
+    z-index: 2147483647 !important;
+    width: 255px !important;
     padding: 10px !important;
-    background: rgba(2, 22, 18, 0.96) !important;
+    background: rgba(2, 22, 18, 0.97) !important;
     color: #eafff7 !important;
     border: 1px solid #00d4a6 !important;
     border-radius: 10px !important;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.45) !important;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.5) !important;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
     font-size: 12px !important;
+    pointer-events: auto !important;
   }
 
-  #txoExtraEditorTools .txoTitle {
+  #txoExtraEditorTools * {
+    box-sizing: border-box !important;
+  }
+
+  #txoExtraHeader {
     display: flex !important;
     align-items: center !important;
-    gap: 6px !important;
-
+    gap: 5px !important;
     margin: -10px -10px 8px -10px !important;
-    padding: 8px 10px !important;
+    padding: 7px !important;
     background: #001f1a !important;
-    color: #ffffff !important;
     border-bottom: 1px solid #00d4a6 !important;
     border-radius: 10px 10px 0 0 !important;
-    font-weight: 700 !important;
     user-select: none !important;
   }
 
   #txoDragHandle {
-    cursor: grab !important;
-    touch-action: none !important;
-    background: #06382f !important;
-    border: 1px solid #00d4a6 !important;
+    cursor: move !important;
+    background: #073d33 !important;
     color: #ffffff !important;
+    border: 1px solid #00d4a6 !important;
     border-radius: 7px !important;
-    padding: 4px 8px !important;
-    font-size: 12px !important;
+    padding: 5px 8px !important;
+    font-weight: 700 !important;
+    white-space: nowrap !important;
+    touch-action: none !important;
+  }
+
+  #txoHelperTitle {
+    font-weight: 700 !important;
     white-space: nowrap !important;
   }
 
-  #txoDragHandle:active {
-    cursor: grabbing !important;
-  }
-
-  #txoPanelTitleText {
-    white-space: nowrap !important;
-  }
-
-  #txoPanelButtonArea {
+  #txoHeaderBtns {
+    margin-left: auto !important;
     display: flex !important;
     gap: 4px !important;
-    margin-left: auto !important;
-  }
-
-  #txoExtraToggleBtn,
-  #txoExtraResetBtn,
-  #txoExtraCloseBtn {
-    flex: none !important;
-    padding: 4px 8px !important;
-    font-size: 12px !important;
-    border-radius: 7px !important;
-    white-space: nowrap !important;
-  }
-
-  #txoExtraEditorTools input {
-    width: 100% !important;
-    background: #001f1a !important;
-    color: #ffffff !important;
-    border: 1px solid #167d6b !important;
-    border-radius: 7px !important;
-    padding: 7px 8px !important;
-    font-size: 12px !important;
   }
 
   #txoExtraEditorTools button {
@@ -702,17 +354,32 @@
     background: #084437 !important;
   }
 
-  #txoExtraEditorTools .txoRow {
+  #txoExtraEditorTools input {
+    width: 100% !important;
+    background: #001f1a !important;
+    color: #ffffff !important;
+    border: 1px solid #167d6b !important;
+    border-radius: 7px !important;
+    padding: 7px 8px !important;
+    font-size: 12px !important;
+    margin-bottom: 7px !important;
+  }
+
+  #txoExtraEditorTools input::placeholder {
+    color: #7aa89d !important;
+  }
+
+  .txoRow {
     display: flex !important;
     gap: 6px !important;
     margin-top: 7px !important;
   }
 
-  #txoExtraEditorTools .txoRow button {
+  .txoRow button {
     flex: 1 !important;
   }
 
-  #txoExtraEditorTools .txoStatus {
+  #txoLinkStatus {
     margin-top: 8px !important;
     padding: 7px !important;
     border-radius: 7px !important;
@@ -722,225 +389,455 @@
     word-break: break-all !important;
   }
 
-  #txoExtraEditorTools .txoSmall {
+  #txoHelpText {
     margin-top: 7px !important;
     color: #a6d8cc !important;
     font-size: 11px !important;
     line-height: 1.35 !important;
   }
 
-  #txoExtraEditorTools.txo-extra-minimized {
-    width: 150px !important;
+  #txoMovePad {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr 1fr !important;
+    gap: 4px !important;
+    margin-bottom: 8px !important;
+  }
+
+  #txoMovePad button {
+    padding: 4px !important;
+  }
+
+  #txoExtraEditorTools.txo-mini {
+    width: 145px !important;
     height: 40px !important;
-    max-height: 40px !important;
     overflow: hidden !important;
     padding: 0 !important;
   }
 
-  #txoExtraEditorTools.txo-extra-minimized .txoTitle {
+  #txoExtraEditorTools.txo-mini #txoExtraHeader {
     margin: 0 !important;
     height: 40px !important;
     border-radius: 10px !important;
-    padding: 5px 8px !important;
   }
 
-  #txoExtraEditorTools.txo-extra-minimized input,
-  #txoExtraEditorTools.txo-extra-minimized .txoRow,
-  #txoExtraEditorTools.txo-extra-minimized .txoStatus,
-  #txoExtraEditorTools.txo-extra-minimized .txoSmall {
+  #txoExtraEditorTools.txo-mini #txoMovePad,
+  #txoExtraEditorTools.txo-mini input,
+  #txoExtraEditorTools.txo-mini .txoRow,
+  #txoExtraEditorTools.txo-mini #txoLinkStatus,
+  #txoExtraEditorTools.txo-mini #txoHelpText {
     display: none !important;
   }
 
-  #txoExtraEditorTools.txo-extra-hidden {
+  #txoExtraEditorTools.txo-hidden {
     display: none !important;
   }
 
-  #txoExtraShowBtn {
+  #txoShowHelperBtn {
     position: fixed !important;
     left: 24px !important;
-    top: 180px !important;
-    z-index: 999999 !important;
+    top: 170px !important;
+    z-index: 2147483647 !important;
     background: #001f1a !important;
     color: #ffffff !important;
     border: 1px solid #00d4a6 !important;
     border-radius: 999px !important;
     padding: 8px 12px !important;
-    font-size: 12px !important;
     cursor: pointer !important;
+  }
+
+  .txo-selected-element {
+    outline: 2px solid #00d4a6 !important;
+    outline-offset: 2px !important;
   }
 </style>
 
 <script>
 (function () {
-  const PANEL_KEY = "txo_editor_helper_panel_position_v3";
+  const TOOL_ID = "txoExtraEditorTools";
+  const POS_KEY = "txo_helper_position_clean_v1";
+  const DRAFT_KEY = "txo_editor_draft_html_v1";
+  let selectedElement = null;
 
-  function setupPanelPointerDrag() {
-    const panel = document.getElementById("txoExtraEditorTools");
-    if (!panel) return false;
+  const old = document.getElementById(TOOL_ID);
+  if (old) old.remove();
 
-    let title = panel.querySelector(".txoTitle");
-    if (!title) return false;
+  function makePanel() {
+    const panel = document.createElement("div");
+    panel.id = TOOL_ID;
 
-    if (panel.dataset.pointerDragReady === "1") return true;
-    panel.dataset.pointerDragReady = "1";
+    panel.innerHTML = `
+      <div id="txoExtraHeader">
+        <span id="txoDragHandle">↕ 移動</span>
+        <span id="txoHelperTitle">編集補助</span>
+        <span id="txoHeaderBtns">
+          <button type="button" id="txoMiniBtn">小さく</button>
+          <button type="button" id="txoCloseBtn">×</button>
+        </span>
+      </div>
 
-    title.innerHTML = `
-      <span id="txoDragHandle">↕ 移動</span>
-      <span id="txoPanelTitleText">編集補助</span>
-      <span id="txoPanelButtonArea">
-        <button type="button" id="txoExtraToggleBtn">小さく</button>
-        <button type="button" id="txoExtraResetBtn">戻す</button>
-        <button type="button" id="txoExtraCloseBtn">×</button>
-      </span>
+      <div id="txoMovePad">
+        <span></span>
+        <button type="button" data-move="up">↑</button>
+        <span></span>
+        <button type="button" data-move="left">←</button>
+        <button type="button" data-move="reset">戻す</button>
+        <button type="button" data-move="right">→</button>
+        <span></span>
+        <button type="button" data-move="down">↓</button>
+        <span></span>
+      </div>
+
+      <input id="txoFontInput" type="text" placeholder="フォント名を入力 例: Noto Sans JP">
+
+      <div class="txoRow">
+        <button type="button" id="txoApplyFontBtn">フォント反映</button>
+      </div>
+
+      <div class="txoRow">
+        <button type="button" id="txoSaveDraftBtn">保存</button>
+        <button type="button" id="txoLoadDraftBtn">読込</button>
+        <button type="button" id="txoClearDraftBtn">削除</button>
+      </div>
+
+      <div id="txoLinkStatus">リンクなし</div>
+
+      <div id="txoHelpText">
+        ↕ 移動を押したままドラッグできます。動かない場合は矢印ボタンで移動できます。
+      </div>
     `;
 
-    const handle = document.getElementById("txoDragHandle");
-    const toggleBtn = document.getElementById("txoExtraToggleBtn");
-    const resetBtn = document.getElementById("txoExtraResetBtn");
-    const closeBtn = document.getElementById("txoExtraCloseBtn");
+    document.body.appendChild(panel);
+    return panel;
+  }
 
+  const panel = makePanel();
+
+  function loadPosition() {
     try {
-      const saved = JSON.parse(localStorage.getItem(PANEL_KEY) || "null");
+      const saved = JSON.parse(localStorage.getItem(POS_KEY) || "null");
       if (saved && typeof saved.left === "number" && typeof saved.top === "number") {
         panel.style.left = saved.left + "px";
         panel.style.top = saved.top + "px";
-        panel.style.right = "auto";
-        panel.style.bottom = "auto";
       }
     } catch (e) {}
-
-    function clamp(left, top) {
-      const maxLeft = Math.max(8, window.innerWidth - panel.offsetWidth - 8);
-      const maxTop = Math.max(8, window.innerHeight - panel.offsetHeight - 8);
-
-      return {
-        left: Math.min(Math.max(8, left), maxLeft),
-        top: Math.min(Math.max(8, top), maxTop)
-      };
-    }
-
-    function savePosition() {
-      const rect = panel.getBoundingClientRect();
-      localStorage.setItem(PANEL_KEY, JSON.stringify({
-        left: rect.left,
-        top: rect.top
-      }));
-    }
-
-    let dragging = false;
-    let pointerId = null;
-    let startX = 0;
-    let startY = 0;
-    let startLeft = 0;
-    let startTop = 0;
-
-    handle.addEventListener("pointerdown", function (e) {
-      dragging = true;
-      pointerId = e.pointerId;
-
-      const rect = panel.getBoundingClientRect();
-      startX = e.clientX;
-      startY = e.clientY;
-      startLeft = rect.left;
-      startTop = rect.top;
-
-      handle.setPointerCapture(pointerId);
-      document.body.style.userSelect = "none";
-
-      e.preventDefault();
-      e.stopPropagation();
-    });
-
-    handle.addEventListener("pointermove", function (e) {
-      if (!dragging || e.pointerId !== pointerId) return;
-
-      const next = clamp(
-        startLeft + e.clientX - startX,
-        startTop + e.clientY - startY
-      );
-
-      panel.style.left = next.left + "px";
-      panel.style.top = next.top + "px";
-      panel.style.right = "auto";
-      panel.style.bottom = "auto";
-
-      e.preventDefault();
-      e.stopPropagation();
-    });
-
-    function stopDrag(e) {
-      if (!dragging) return;
-
-      dragging = false;
-      pointerId = null;
-      document.body.style.userSelect = "";
-      savePosition();
-
-      if (e) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    }
-
-    handle.addEventListener("pointerup", stopDrag);
-    handle.addEventListener("pointercancel", stopDrag);
-
-    toggleBtn.addEventListener("click", function () {
-      panel.classList.toggle("txo-extra-minimized");
-      toggleBtn.textContent = panel.classList.contains("txo-extra-minimized") ? "開く" : "小さく";
-      savePosition();
-    });
-
-    resetBtn.addEventListener("click", function () {
-      panel.classList.remove("txo-extra-minimized");
-      panel.style.left = "24px";
-      panel.style.top = "180px";
-      panel.style.right = "auto";
-      panel.style.bottom = "auto";
-      toggleBtn.textContent = "小さく";
-      localStorage.removeItem(PANEL_KEY);
-    });
-
-    closeBtn.addEventListener("click", function () {
-      const rect = panel.getBoundingClientRect();
-      panel.classList.add("txo-extra-hidden");
-
-      let showBtn = document.getElementById("txoExtraShowBtn");
-
-      if (!showBtn) {
-        showBtn = document.createElement("button");
-        showBtn.id = "txoExtraShowBtn";
-        showBtn.type = "button";
-        showBtn.textContent = "編集補助";
-        document.body.appendChild(showBtn);
-      }
-
-      showBtn.style.left = rect.left + "px";
-      showBtn.style.top = rect.top + "px";
-
-      showBtn.onclick = function () {
-        panel.classList.remove("txo-extra-hidden");
-        showBtn.remove();
-      };
-    });
-
-    return true;
   }
 
-  if (!setupPanelPointerDrag()) {
-    let count = 0;
-    const timer = setInterval(function () {
-      count++;
-      if (setupPanelPointerDrag() || count > 60) {
-        clearInterval(timer);
-      }
-    }, 100);
+  function savePosition() {
+    const r = panel.getBoundingClientRect();
+    localStorage.setItem(POS_KEY, JSON.stringify({
+      left: r.left,
+      top: r.top
+    }));
   }
+
+  function clamp(left, top) {
+    const maxLeft = Math.max(8, window.innerWidth - panel.offsetWidth - 8);
+    const maxTop = Math.max(8, window.innerHeight - panel.offsetHeight - 8);
+    return {
+      left: Math.min(Math.max(8, left), maxLeft),
+      top: Math.min(Math.max(8, top), maxTop)
+    };
+  }
+
+  function setPanelPosition(left, top) {
+    const p = clamp(left, top);
+    panel.style.left = p.left + "px";
+    panel.style.top = p.top + "px";
+    panel.style.right = "auto";
+    panel.style.bottom = "auto";
+    savePosition();
+  }
+
+  loadPosition();
+
+  const handle = document.getElementById("txoDragHandle");
+
+  let dragging = false;
+  let startX = 0;
+  let startY = 0;
+  let startLeft = 0;
+  let startTop = 0;
+
+  function startDrag(e) {
+    const point = e.touches ? e.touches[0] : e;
+
+    dragging = true;
+    startX = point.clientX;
+    startY = point.clientY;
+
+    const r = panel.getBoundingClientRect();
+    startLeft = r.left;
+    startTop = r.top;
+
+    document.body.style.userSelect = "none";
+
+    window.addEventListener("mousemove", moveDrag, true);
+    window.addEventListener("mouseup", stopDrag, true);
+    window.addEventListener("touchmove", moveDrag, { capture: true, passive: false });
+    window.addEventListener("touchend", stopDrag, true);
+
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
+  }
+
+  function moveDrag(e) {
+    if (!dragging) return;
+
+    const point = e.touches ? e.touches[0] : e;
+
+    setPanelPosition(
+      startLeft + point.clientX - startX,
+      startTop + point.clientY - startY
+    );
+
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
+  }
+
+  function stopDrag(e) {
+    if (!dragging) return;
+
+    dragging = false;
+    document.body.style.userSelect = "";
+
+    window.removeEventListener("mousemove", moveDrag, true);
+    window.removeEventListener("mouseup", stopDrag, true);
+    window.removeEventListener("touchmove", moveDrag, true);
+    window.removeEventListener("touchend", stopDrag, true);
+
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    savePosition();
+    return false;
+  }
+
+  handle.onmousedown = startDrag;
+  handle.ontouchstart = startDrag;
+  handle.ondragstart = function () { return false; };
+
+  document.querySelectorAll("#txoMovePad button").forEach(btn => {
+    btn.addEventListener("click", function () {
+      const r = panel.getBoundingClientRect();
+      const type = btn.dataset.move;
+      const step = 40;
+
+      if (type === "up") setPanelPosition(r.left, r.top - step);
+      if (type === "down") setPanelPosition(r.left, r.top + step);
+      if (type === "left") setPanelPosition(r.left - step, r.top);
+      if (type === "right") setPanelPosition(r.left + step, r.top);
+      if (type === "reset") {
+        panel.classList.remove("txo-mini");
+        setPanelPosition(24, 170);
+      }
+    });
+  });
+
+  document.getElementById("txoMiniBtn").addEventListener("click", function () {
+    panel.classList.toggle("txo-mini");
+    this.textContent = panel.classList.contains("txo-mini") ? "開く" : "小さく";
+    savePosition();
+  });
+
+  document.getElementById("txoCloseBtn").addEventListener("click", function () {
+    const r = panel.getBoundingClientRect();
+    panel.classList.add("txo-hidden");
+
+    let showBtn = document.getElementById("txoShowHelperBtn");
+    if (!showBtn) {
+      showBtn = document.createElement("button");
+      showBtn.id = "txoShowHelperBtn";
+      showBtn.textContent = "編集補助";
+      document.body.appendChild(showBtn);
+    }
+
+    showBtn.style.left = r.left + "px";
+    showBtn.style.top = r.top + "px";
+
+    showBtn.onclick = function () {
+      panel.classList.remove("txo-hidden");
+      showBtn.remove();
+    };
+  });
+
+  function getFrame() {
+    return document.querySelector("iframe");
+  }
+
+  function getEditorDocument() {
+    const frame = getFrame();
+    if (frame && frame.contentDocument) return frame.contentDocument;
+    return document;
+  }
+
+  function getEditableRoot() {
+    const doc = getEditorDocument();
+    return (
+      doc.querySelector("[data-editor-root]") ||
+      doc.querySelector("#editor-root") ||
+      doc.querySelector("#canvas") ||
+      doc.querySelector(".canvas") ||
+      doc.querySelector("[contenteditable='true']") ||
+      doc.body
+    );
+  }
+
+  function clearSelectedOutline() {
+    const doc = getEditorDocument();
+    doc.querySelectorAll(".txo-selected-element").forEach(el => {
+      el.classList.remove("txo-selected-element");
+    });
+  }
+
+  function setSelectedElement(el) {
+    if (!el) return;
+    const doc = getEditorDocument();
+    if (el === doc.body || el === doc.documentElement) return;
+
+    clearSelectedOutline();
+    selectedElement = el;
+    selectedElement.classList.add("txo-selected-element");
+    updateLinkStatus();
+  }
+
+  function findLinkElement(el) {
+    if (!el) return null;
+    if (el.tagName && el.tagName.toLowerCase() === "a") return el;
+    return el.closest ? el.closest("a") : null;
+  }
+
+  function updateLinkStatus() {
+    const status = document.getElementById("txoLinkStatus");
+    if (!status) return;
+
+    const link = findLinkElement(selectedElement);
+
+    if (link && link.getAttribute("href")) {
+      status.textContent = "リンクあり: " + link.getAttribute("href");
+    } else {
+      status.textContent = "リンクなし";
+    }
+  }
+
+  function loadGoogleFont(fontName) {
+    const name = String(fontName || "").trim();
+    if (!name) return;
+
+    const id = "txo-google-font-" + name.replace(/[^a-zA-Z0-9]/g, "-");
+    if (document.getElementById(id)) return;
+
+    const link = document.createElement("link");
+    link.id = id;
+    link.rel = "stylesheet";
+    link.href = "https://fonts.googleapis.com/css2?family=" + encodeURIComponent(name).replace(/%20/g, "+") + ":wght@300;400;500;600;700&display=swap";
+    document.head.appendChild(link);
+  }
+
+  document.getElementById("txoApplyFontBtn").addEventListener("click", function () {
+    const fontName = document.getElementById("txoFontInput").value.trim();
+
+    if (!fontName) {
+      alert("フォント名を入力してください。例: Noto Sans JP");
+      return;
+    }
+
+    loadGoogleFont(fontName);
+
+    const target = selectedElement || getEditableRoot();
+    target.style.fontFamily = "'" + fontName + "', sans-serif";
+
+    alert("フォントを反映しました: " + fontName);
+  });
+
+  document.getElementById("txoSaveDraftBtn").addEventListener("click", function () {
+    const root = getEditableRoot();
+    localStorage.setItem(DRAFT_KEY, root.innerHTML);
+    alert("下書きを保存しました。");
+  });
+
+  document.getElementById("txoLoadDraftBtn").addEventListener("click", function () {
+    const saved = localStorage.getItem(DRAFT_KEY);
+
+    if (!saved) {
+      alert("保存された下書きがありません。");
+      return;
+    }
+
+    if (!confirm("保存した下書きを読み込みますか？ 今の編集内容は上書きされます。")) return;
+
+    const root = getEditableRoot();
+    root.innerHTML = saved;
+    selectedElement = null;
+    updateLinkStatus();
+    alert("下書きを読み込みました。");
+  });
+
+  document.getElementById("txoClearDraftBtn").addEventListener("click", function () {
+    if (!confirm("保存した下書きを削除しますか？")) return;
+    localStorage.removeItem(DRAFT_KEY);
+    alert("下書きを削除しました。");
+  });
+
+  function setupEditorEvents() {
+    const doc = getEditorDocument();
+    if (doc.__txoHelperEventsReady) return;
+    doc.__txoHelperEventsReady = true;
+
+    doc.addEventListener("click", function (e) {
+      if (!e.target || !e.target.tagName) return;
+
+      const tag = e.target.tagName.toLowerCase();
+      if (tag === "body" || tag === "html") return;
+
+      setSelectedElement(e.target);
+    }, true);
+
+    doc.addEventListener("keydown", function (e) {
+      if (e.key !== "Backspace" && e.key !== "Delete") return;
+
+      const active = doc.activeElement;
+      const typing =
+        active &&
+        (
+          active.tagName === "INPUT" ||
+          active.tagName === "TEXTAREA" ||
+          active.isContentEditable
+        );
+
+      if (typing) return;
+      if (!selectedElement) return;
+
+      e.preventDefault();
+
+      if (confirm("選択中の要素を削除しますか？")) {
+        selectedElement.remove();
+        selectedElement = null;
+        updateLinkStatus();
+      }
+    }, true);
+  }
+
+  setupEditorEvents();
+
+  const frame = getFrame();
+  if (frame) {
+    frame.addEventListener("load", function () {
+      setupEditorEvents();
+      updateLinkStatus();
+    });
+  }
+
+  updateLinkStatus();
 })();
 </script>
-<!-- TXO_POINTER_DRAG_PANEL_END -->
+<!-- TXO_CLEAN_DRAG_HELPER_END -->
 </body>
 </html>
+
 
 
 
