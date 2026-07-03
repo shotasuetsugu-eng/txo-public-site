@@ -835,8 +835,320 @@
 })();
 </script>
 <!-- TXO_CLEAN_DRAG_HELPER_END -->
+<!-- TXO_TEXT_EFFECTS_START -->
+<style>
+  #txoEffectBox {
+    margin-top: 8px !important;
+    padding: 8px !important;
+    border: 1px solid #167d6b !important;
+    border-radius: 8px !important;
+    background: #001f1a !important;
+  }
+
+  #txoEffectBox label {
+    display: block !important;
+    color: #a6d8cc !important;
+    font-size: 11px !important;
+    margin-bottom: 5px !important;
+  }
+
+  #txoEffectBox select {
+    width: 100% !important;
+    background: #001f1a !important;
+    color: #ffffff !important;
+    border: 1px solid #167d6b !important;
+    border-radius: 7px !important;
+    padding: 7px 8px !important;
+    font-size: 12px !important;
+    margin-bottom: 7px !important;
+  }
+
+  #txoEffectBox .txoEffectRow {
+    display: flex !important;
+    gap: 6px !important;
+  }
+
+  #txoEffectBox .txoEffectRow button {
+    flex: 1 !important;
+  }
+</style>
+
+<script>
+(function () {
+  const STYLE_ID = "txoAnimStylesPersist";
+  const EFFECT_CLASSES = [
+    "txo-anim-breathe",
+    "txo-anim-flash",
+    "txo-anim-slide",
+    "txo-anim-float",
+    "txo-anim-glow",
+    "txo-anim-shake",
+    "txo-anim-ticker"
+  ];
+
+  const EFFECT_CSS = `
+#txoAnimStylesPersist {
+  display: none !important;
+}
+
+.txo-anim-breathe {
+  animation: txoBreathe var(--txo-anim-speed, 2.2s) ease-in-out infinite !important;
+  transform-origin: center center !important;
+}
+
+@keyframes txoBreathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.07); }
+}
+
+.txo-anim-flash {
+  animation: txoFlash var(--txo-anim-speed, 1s) step-end infinite !important;
+}
+
+@keyframes txoFlash {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0.25; }
+}
+
+.txo-anim-slide {
+  display: inline-block !important;
+  animation: txoSlide var(--txo-anim-speed, 2.2s) ease-in-out infinite alternate !important;
+}
+
+@keyframes txoSlide {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(28px); }
+}
+
+.txo-anim-float {
+  display: inline-block !important;
+  animation: txoFloat var(--txo-anim-speed, 2.4s) ease-in-out infinite !important;
+}
+
+@keyframes txoFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-9px); }
+}
+
+.txo-anim-glow {
+  animation: txoGlow var(--txo-anim-speed, 1.8s) ease-in-out infinite alternate !important;
+}
+
+@keyframes txoGlow {
+  0% {
+    text-shadow: 0 0 0 transparent;
+    filter: drop-shadow(0 0 0 transparent);
+  }
+  100% {
+    text-shadow: 0 0 12px currentColor;
+    filter: drop-shadow(0 0 8px currentColor);
+  }
+}
+
+.txo-anim-shake {
+  display: inline-block !important;
+  animation: txoShake var(--txo-anim-speed, .35s) linear infinite !important;
+}
+
+@keyframes txoShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+
+.txo-anim-ticker {
+  display: inline-block !important;
+  animation: txoTicker var(--txo-anim-speed, 4s) ease-in-out infinite alternate !important;
+  white-space: nowrap !important;
+}
+
+@keyframes txoTicker {
+  0% { transform: translateX(-24px); }
+  100% { transform: translateX(24px); }
+}
+`;
+
+  function getFrame() {
+    return document.querySelector("iframe");
+  }
+
+  function getEditorDocument() {
+    const frame = getFrame();
+    if (frame && frame.contentDocument) return frame.contentDocument;
+    return document;
+  }
+
+  function getEditableRoot() {
+    const doc = getEditorDocument();
+
+    return (
+      doc.querySelector("[data-editor-root]") ||
+      doc.querySelector("#editor-root") ||
+      doc.querySelector("#canvas") ||
+      doc.querySelector(".canvas") ||
+      doc.querySelector("[contenteditable='true']") ||
+      doc.body
+    );
+  }
+
+  function ensureEffectStyle() {
+    const doc = getEditorDocument();
+    const root = getEditableRoot();
+
+    let style = doc.getElementById(STYLE_ID);
+
+    if (!style) {
+      style = doc.createElement("style");
+      style.id = STYLE_ID;
+      style.textContent = EFFECT_CSS;
+
+      if (root && root.firstChild) {
+        root.insertBefore(style, root.firstChild);
+      } else if (root) {
+        root.appendChild(style);
+      } else {
+        doc.body.appendChild(style);
+      }
+    } else {
+      style.textContent = EFFECT_CSS;
+    }
+  }
+
+  function getSelectedElement() {
+    const doc = getEditorDocument();
+    return doc.querySelector(".txo-selected-element");
+  }
+
+  function clearEffects(el) {
+    if (!el) return;
+
+    EFFECT_CLASSES.forEach(cls => {
+      el.classList.remove(cls);
+    });
+
+    el.removeAttribute("data-txo-effect");
+    el.style.removeProperty("--txo-anim-speed");
+  }
+
+  function applyEffect() {
+    const effectSelect = document.getElementById("txoEffectSelect");
+    const speedSelect = document.getElementById("txoEffectSpeed");
+
+    if (!effectSelect || !speedSelect) return;
+
+    const effect = effectSelect.value;
+    const speed = speedSelect.value;
+
+    const el = getSelectedElement();
+
+    if (!el) {
+      alert("先にエフェクトを付けたい文字・画像・ボタンをクリックして選択してください。");
+      return;
+    }
+
+    ensureEffectStyle();
+    clearEffects(el);
+
+    if (effect === "none") {
+      alert("エフェクトを解除しました。");
+      return;
+    }
+
+    el.classList.add("txo-anim-" + effect);
+    el.setAttribute("data-txo-effect", effect);
+    el.style.setProperty("--txo-anim-speed", speed);
+
+    alert("エフェクトを反映しました。");
+  }
+
+  function removeEffect() {
+    const el = getSelectedElement();
+
+    if (!el) {
+      alert("先にエフェクトを外したい要素をクリックして選択してください。");
+      return;
+    }
+
+    clearEffects(el);
+    alert("エフェクトを解除しました。");
+  }
+
+  function installEffectUI() {
+    const panel = document.getElementById("txoExtraEditorTools");
+    if (!panel) return false;
+
+    if (document.getElementById("txoEffectBox")) return true;
+
+    const box = document.createElement("div");
+    box.id = "txoEffectBox";
+
+    box.innerHTML = `
+      <label>エフェクト</label>
+      <select id="txoEffectSelect">
+        <option value="none">なし</option>
+        <option value="breathe">呼吸</option>
+        <option value="flash">フラッシュ</option>
+        <option value="slide">左右に動く</option>
+        <option value="float">上下にふわふわ</option>
+        <option value="glow">光る</option>
+        <option value="shake">ブルブル</option>
+        <option value="ticker">流れる文字風</option>
+      </select>
+
+      <label>スピード</label>
+      <select id="txoEffectSpeed">
+        <option value="3.5s">ゆっくり</option>
+        <option value="2s" selected>普通</option>
+        <option value="0.8s">速い</option>
+        <option value="0.35s">かなり速い</option>
+      </select>
+
+      <div class="txoEffectRow">
+        <button type="button" id="txoApplyEffectBtn">反映</button>
+        <button type="button" id="txoRemoveEffectBtn">解除</button>
+      </div>
+    `;
+
+    const linkStatus = panel.querySelector("#txoLinkStatus");
+
+    if (linkStatus) {
+      panel.insertBefore(box, linkStatus);
+    } else {
+      panel.appendChild(box);
+    }
+
+    document.getElementById("txoApplyEffectBtn").addEventListener("click", applyEffect);
+    document.getElementById("txoRemoveEffectBtn").addEventListener("click", removeEffect);
+
+    ensureEffectStyle();
+
+    return true;
+  }
+
+  if (!installEffectUI()) {
+    let count = 0;
+    const timer = setInterval(function () {
+      count++;
+
+      if (installEffectUI() || count > 60) {
+        clearInterval(timer);
+      }
+    }, 100);
+  }
+
+  const frame = getFrame();
+
+  if (frame) {
+    frame.addEventListener("load", function () {
+      setTimeout(ensureEffectStyle, 300);
+    });
+  }
+})();
+</script>
+<!-- TXO_TEXT_EFFECTS_END -->
 </body>
 </html>
+
 
 
 
