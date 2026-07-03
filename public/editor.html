@@ -43,7 +43,7 @@
         <h3>選択中の要素</h3><p class="hint" id="selectedName">画面内の編集したい場所をクリック</p>
         <p class="hint">ページ移動は通常クリック。Navigation自体の編集はAltキーを押しながらクリックします。選択中は矢印キーで1px、Shift+矢印キーで10px移動できます（「ドラッグ移動」中はマウスでも移動可）。</p>
         <label>文字</label><input id="text">
-        <label>フォント</label>
+        <label>フォント（プリセット）</label>
         <select id="fontFamily">
           <option value="">指定なし（サイトの既定）</option>
           <option value="'Inter',sans-serif">Inter（既定・角ゴシック）</option>
@@ -55,6 +55,9 @@
           <option value="monospace">等幅（Monospace）</option>
           <option value="'Georgia',serif">Georgia（欧文セリフ）</option>
         </select>
+        <label>フォント名を直接入力（Google Fontsから自動読込）</label>
+        <input id="customFont" placeholder="例: Playfair Display / M PLUS Rounded 1c">
+        <p class="hint">Google Fontsに存在するフォント名を入力すると自動的に読み込んで反映します。</p>
         <label>文字サイズ</label><input id="fontSize" placeholder="例: 32px">
         <label>文字色</label><input id="color" type="color">
         <div class="panel-row" style="display:flex;gap:8px;margin:8px 0">
@@ -194,21 +197,19 @@
       },true);
     };
     const bind=(id,fn)=>document.querySelector('#'+id).onchange=e=>{if(!selected)return;snapshot();fn(e.target.value)};
-    const googleFontFamilies={"Noto Sans JP":"Noto+Sans+JP:wght@400;500;700;900","Noto Serif JP":"Noto+Serif+JP:wght@400;500;700;900","Zen Kaku Gothic New":"Zen+Kaku+Gothic+New:wght@400;500;700;900","Zen Old Mincho":"Zen+Old+Mincho:wght@400;500;700;900","Shippori Mincho":"Shippori+Mincho:wght@400;500;600;700;800"};
-    function ensureFontLoaded(v){
-      const m=(v||'').match(/'([^']+)'/);
-      if(!m)return;
-      const name=m[1],q=googleFontFamilies[name];
-      if(!q)return;
+    function ensureFontLoaded(name){
+      if(!name)return;
       const d=frame.contentDocument,id='gf-'+name.replace(/\s+/g,'-');
       if(d.getElementById(id))return;
       const link=d.createElement('link');
       link.id=id;link.rel='stylesheet';
-      link.href=`https://fonts.googleapis.com/css2?family=${q}&display=swap`;
+      link.href=`https://fonts.googleapis.com/css2?family=${encodeURIComponent(name).replace(/%20/g,'+')}:wght@400;500;700;900&display=swap`;
       d.head.appendChild(link);
     }
     bind('text',v=>selected.textContent=v);bind('fontSize',v=>selected.style.fontSize=v);bind('color',v=>selected.style.color=v);bind('background',v=>selected.style.backgroundColor=v);
-    bind('fontFamily',v=>{ensureFontLoaded(v);selected.style.fontFamily=v});bind('textAlign',v=>selected.style.textAlign=v);bind('lineHeight',v=>selected.style.lineHeight=v);bind('letterSpacing',v=>selected.style.letterSpacing=v);
+    bind('fontFamily',v=>{const m=v.match(/'([^']+)'/);if(m)ensureFontLoaded(m[1]);selected.style.fontFamily=v});
+    bind('customFont',v=>{if(!v)return;ensureFontLoaded(v);selected.style.fontFamily=`'${v}',sans-serif`});
+    bind('textAlign',v=>selected.style.textAlign=v);bind('lineHeight',v=>selected.style.lineHeight=v);bind('letterSpacing',v=>selected.style.letterSpacing=v);
     bind('backgroundImage',v=>{selected.style.backgroundImage=`url("${v}")`;selected.style.backgroundSize='cover';selected.style.backgroundPosition='center'});
     bind('backgroundVideo',v=>{selected.style.position='relative';selected.style.overflow='hidden';selected.insertAdjacentHTML('afterbegin',`<video autoplay muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0"><source src="${v}"></video>`)});
     bind('linkUrl',v=>{const link=selected.closest('a');if(link)link.href=v;else{const a=selected.ownerDocument.createElement('a');a.href=v;selected.replaceWith(a);a.append(selected);selectElement(a)}});
