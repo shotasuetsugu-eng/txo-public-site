@@ -25,6 +25,7 @@
       <button data-add="text">文字追加</button><button data-add="image">画像追加</button><button data-add="video">動画追加</button>
       <button data-add="link">リンク追加</button><button data-add="section">セクション追加</button>
       <button id="duplicate">複製</button><button id="remove">削除</button>
+      <button id="reset" style="border-color:#a33">初期状態に戻す</button>
       <button id="publish" class="primary">公開</button><button onclick="window.open('/','_blank')">公開画面</button>
     </div>
     <div class="workspace">
@@ -40,7 +41,7 @@
       <div class="canvas"><iframe id="frame" src="/preview"></iframe></div>
       <aside class="panel">
         <h3>選択中の要素</h3><p class="hint" id="selectedName">画面内の編集したい場所をクリック</p>
-        <p class="hint">ページ移動は通常クリック。Navigation自体の編集はAltキーを押しながらクリックします。</p>
+        <p class="hint">ページ移動は通常クリック。Navigation自体の編集はAltキーを押しながらクリックします。選択中は矢印キーで1px、Shift+矢印キーで10px移動できます（「ドラッグ移動」中はマウスでも移動可）。</p>
         <label>文字</label><input id="text">
         <label>文字サイズ</label><input id="fontSize" placeholder="例: 32px">
         <label>文字色</label><input id="color" type="color">
@@ -68,8 +69,28 @@
     const selectElement=el=>{if(selected)selected.style.outline='';selected=el;if(!selected)return;selectedName.textContent=selected.tagName+' / '+(selected.textContent||'').slice(0,40);text.value=selected.children.length?'':selected.textContent||'';linkUrl.value=selected.closest('a')?.getAttribute('href')||'';selected.style.outline='2px solid #00e5c8'};
     const pageIdOf=el=>{const value=el.getAttribute('onclick')||'';return value.match(/showPage\(['"]([^'"]+)/)?.[1]||''};
     const renderNavEditor=()=>{const d=frame.contentDocument;if(!d)return;const tabs=[...d.querySelectorAll('.nav-tab')];navEditor.innerHTML='';tabs.forEach((tab,index)=>{const row=document.createElement('div');row.className='nav-editor-row';const input=document.createElement('input');input.value=tab.textContent.trim();input.oninput=()=>tab.textContent=input.value;const actions=document.createElement('div');actions.className='nav-editor-actions';const open=document.createElement('button');open.textContent='開く';open.onclick=()=>frame.contentWindow.showPage(pageIdOf(tab));const up=document.createElement('button');up.textContent='↑';up.onclick=()=>{if(tab.previousElementSibling)tab.parentElement.insertBefore(tab,tab.previousElementSibling);renderNavEditor()};const down=document.createElement('button');down.textContent='↓';down.onclick=()=>{if(tab.nextElementSibling)tab.parentElement.insertBefore(tab.nextElementSibling,tab);renderNavEditor()};const del=document.createElement('button');del.textContent='×';del.onclick=()=>{snapshot();tab.remove();renderNavEditor()};actions.append(open,up,down,del);row.append(input,actions);navEditor.append(row)})};
+    function nudge(dx,dy){
+      if(!selected)return;
+      const cs=selected.ownerDocument.defaultView.getComputedStyle(selected);
+      if(cs.position==='static')selected.style.position='relative';
+      const l=parseFloat(selected.style.left)||0;
+      const t=parseFloat(selected.style.top)||0;
+      selected.style.left=(l+dx)+'px';
+      selected.style.top=(t+dy)+'px';
+    }
     frame.onload=()=>{const d=frame.contentDocument;renderNavEditor();d.addEventListener('click',e=>{const navControl=e.target.closest('.nav-tab,.logo,.navcta');if(navControl&&!e.altKey)return;e.preventDefault();e.stopPropagation();selectElement(e.target)},true);
-      d.addEventListener('pointerdown',e=>{if(!moving||!selected||e.target!==selected)return;snapshot();const x=e.clientX,y=e.clientY,l=parseFloat(selected.style.left)||0,t=parseFloat(selected.style.top)||0;selected.style.position='relative';const mm=v=>{selected.style.left=l+v.clientX-x+'px';selected.style.top=t+v.clientY-y+'px'};const up=()=>{d.removeEventListener('pointermove',mm);d.removeEventListener('pointerup',up)};d.addEventListener('pointermove',mm);d.addEventListener('pointerup',up)},true)};
+      d.addEventListener('pointerdown',e=>{if(!moving||!selected||e.target!==selected)return;snapshot();const x=e.clientX,y=e.clientY,l=parseFloat(selected.style.left)||0,t=parseFloat(selected.style.top)||0;selected.style.position='relative';const mm=v=>{selected.style.left=l+v.clientX-x+'px';selected.style.top=t+v.clientY-y+'px'};const up=()=>{d.removeEventListener('pointermove',mm);d.removeEventListener('pointerup',up)};d.addEventListener('pointermove',mm);d.addEventListener('pointerup',up)},true);
+      d.addEventListener('keydown',e=>{
+        if(!selected)return;
+        const tag=(e.target.tagName||'').toLowerCase();
+        if(tag==='input'||tag==='textarea'||e.target.isContentEditable)return;
+        const step=e.shiftKey?10:1;
+        if(e.key==='ArrowUp'){snapshot();nudge(0,-step);e.preventDefault()}
+        else if(e.key==='ArrowDown'){snapshot();nudge(0,step);e.preventDefault()}
+        else if(e.key==='ArrowLeft'){snapshot();nudge(-step,0);e.preventDefault()}
+        else if(e.key==='ArrowRight'){snapshot();nudge(step,0);e.preventDefault()}
+      },true);
+    };
     const bind=(id,fn)=>document.querySelector('#'+id).onchange=e=>{if(!selected)return;snapshot();fn(e.target.value)};
     bind('text',v=>selected.textContent=v);bind('fontSize',v=>selected.style.fontSize=v);bind('color',v=>selected.style.color=v);bind('background',v=>selected.style.backgroundColor=v);
     bind('backgroundImage',v=>{selected.style.backgroundImage=`url("${v}")`;selected.style.backgroundSize='cover';selected.style.backgroundPosition='center'});
@@ -87,7 +108,48 @@
     document.querySelector('#addNav').onclick=()=>{const d=frame.contentDocument,id=prompt('移動先ページID（例: home）','home');if(!id)return;const tab=d.createElement('button');tab.className='nav-tab';tab.textContent='新しいページ';tab.setAttribute('onclick',`showPage('${id}')`);d.querySelector('.nav-tabs').append(tab);renderNavEditor()};
     document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{const d=frame.contentDocument,target=selected||d.body,type=b.dataset.add;snapshot();if(type==='text')target.insertAdjacentHTML('beforeend','<div style="padding:16px;font-size:28px">新しい文字</div>');if(type==='section')target.insertAdjacentHTML('beforeend','<section style="min-height:240px;padding:32px"></section>');if(type==='link')target.insertAdjacentHTML('beforeend','<a href="https://" style="display:inline-block;padding:10px;color:inherit">新しいリンク</a>');if(type==='image'||type==='video'){file.accept=type==='image'?'image/*':'video/*';file.dataset.type=type;file.click()}});
     file.onchange=()=>{const f=file.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const target=selected||frame.contentDocument.body;if(file.dataset.type==='image')target.insertAdjacentHTML('beforeend',`<img src="${r.result}" style="max-width:100%">`);else target.insertAdjacentHTML('beforeend',`<video src="${r.result}" controls style="max-width:100%"></video>`)};r.readAsDataURL(f)};
-    document.querySelector('#publish').onclick=async()=>{const d=frame.contentDocument;d.querySelectorAll('[style*="outline"]').forEach(e=>e.style.outline='');const html='<!doctype html>\\n'+d.documentElement.outerHTML;const r=await fetch('/api/content',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({html})});alert(r.ok?'公開しました':'保存に失敗しました')};
+    function isDangerousUrl(url){
+      if(!url) return false;
+      const v = String(url).trim();
+      return /^file:/i.test(v) || /^javascript:/i.test(v) || /^[a-zA-Z]:[\\/]/.test(v) || v.startsWith('\\\\') || v.startsWith('C:\\') || /^about:/i.test(v);
+    }
+    function sanitizedClone(d){
+      const clone = d.documentElement.cloneNode(true);
+      clone.querySelectorAll('[href]').forEach(el=>{ if(isDangerousUrl(el.getAttribute('href'))) el.setAttribute('href','#') });
+      clone.querySelectorAll('[src]').forEach(el=>{ if(isDangerousUrl(el.getAttribute('src'))) el.removeAttribute('src') });
+      clone.querySelectorAll('[style]').forEach(el=>{
+        let style = el.getAttribute('style') || '';
+        style = style.replace(/outline:[^;]+;?/gi, '');
+        style = style.replace(/background-image:\s*url\((['"]?)([^)'"]+)\1\)/gi, (m, _q, url) => isDangerousUrl(url) ? '' : m);
+        if(style.trim()) el.setAttribute('style', style); else el.removeAttribute('style');
+      });
+      return clone;
+    }
+    document.querySelector('#publish').onclick=async()=>{
+      const d=frame.contentDocument;
+      const clone=sanitizedClone(d);
+      const html='<!doctype html>\n'+clone.outerHTML;
+      const r=await fetch('/api/content',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({html})});
+      if(!r.ok){alert('保存に失敗しました');return}
+      const check=await fetch('/preview?t='+Date.now());
+      const checkHtml=await check.text();
+      const looksHealthy = checkHtml.includes('function showPage') && checkHtml.includes('id="page-home"') && checkHtml.includes('class="nav"');
+      if(!looksHealthy){
+        alert('公開しましたが、内容に問題がある可能性があります。表示が壊れていたら「初期状態に戻す」を押してください。');
+      } else {
+        alert('公開しました');
+      }
+    };
+    document.querySelector('#reset').onclick=async()=>{
+      if(!confirm('編集内容をすべて破棄して、初期状態（base.html）に戻します。よろしいですか？'))return;
+      const r=await fetch('/api/reset-content',{method:'POST'});
+      if(r.ok){
+        alert('初期状態に戻しました');
+        frame.src='/preview?t='+Date.now();
+      } else {
+        alert('リセットに失敗しました');
+      }
+    };
   </script>
 </body>
 </html>

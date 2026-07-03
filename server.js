@@ -102,6 +102,16 @@ app.get("/api/content", requireAdmin, async (_req, res) => {
   res.type("html").send(await readPublished());
 });
 
+app.get("/api/base-content", requireAdmin, async (_req, res) => {
+  res.type("html").send(await fs.readFile(basePath, "utf8"));
+});
+
+app.post("/api/reset-content", requireAdmin, async (_req, res) => {
+  const baseHtml = await fs.readFile(basePath, "utf8");
+  await writePublished(baseHtml);
+  res.json({ success: true });
+});
+
 app.put("/api/content", requireAdmin, async (req, res) => {
   const html = String(req.body?.html || "");
   if (!html.includes("<html") || html.length > 45_000_000) return res.status(400).json({ error: "HTMLデータが不正です" });
