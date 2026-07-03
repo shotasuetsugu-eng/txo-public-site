@@ -280,8 +280,17 @@
       }
     };
   </script>
-<!-- TXO_CLEAN_DRAG_HELPER_START -->
+<!-- TXO_FINAL_HELPER_START -->
 <style>
+  #txoDragShield {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 2147483646 !important;
+    background: transparent !important;
+    cursor: move !important;
+    display: none;
+  }
+
   #txoExtraEditorTools {
     position: fixed !important;
     left: 24px !important;
@@ -295,10 +304,9 @@
     color: #eafff7 !important;
     border: 1px solid #00d4a6 !important;
     border-radius: 10px !important;
-    box-shadow: 0 12px 32px rgba(0,0,0,0.5) !important;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.55) !important;
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
     font-size: 12px !important;
-    pointer-events: auto !important;
   }
 
   #txoExtraEditorTools * {
@@ -326,7 +334,6 @@
     padding: 5px 8px !important;
     font-weight: 700 !important;
     white-space: nowrap !important;
-    touch-action: none !important;
   }
 
   #txoHelperTitle {
@@ -354,7 +361,8 @@
     background: #084437 !important;
   }
 
-  #txoExtraEditorTools input {
+  #txoExtraEditorTools input,
+  #txoExtraEditorTools select {
     width: 100% !important;
     background: #001f1a !important;
     color: #ffffff !important;
@@ -379,7 +387,19 @@
     flex: 1 !important;
   }
 
-  #txoLinkStatus {
+  #txoMovePad {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr 1fr !important;
+    gap: 4px !important;
+    margin-bottom: 8px !important;
+  }
+
+  #txoMovePad button {
+    padding: 4px !important;
+  }
+
+  #txoLinkStatus,
+  #txoSelectedStatus {
     margin-top: 8px !important;
     padding: 7px !important;
     border-radius: 7px !important;
@@ -396,19 +416,22 @@
     line-height: 1.35 !important;
   }
 
-  #txoMovePad {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr 1fr !important;
-    gap: 4px !important;
-    margin-bottom: 8px !important;
+  .txoPanelSection {
+    margin-top: 8px !important;
+    padding: 8px !important;
+    border: 1px solid #167d6b !important;
+    border-radius: 8px !important;
+    background: #001f1a !important;
   }
 
-  #txoMovePad button {
-    padding: 4px !important;
+  .txoPanelSectionTitle {
+    font-size: 11px !important;
+    color: #a6d8cc !important;
+    margin-bottom: 6px !important;
   }
 
   #txoExtraEditorTools.txo-mini {
-    width: 145px !important;
+    width: 150px !important;
     height: 40px !important;
     overflow: hidden !important;
     padding: 0 !important;
@@ -422,8 +445,11 @@
 
   #txoExtraEditorTools.txo-mini #txoMovePad,
   #txoExtraEditorTools.txo-mini input,
+  #txoExtraEditorTools.txo-mini select,
   #txoExtraEditorTools.txo-mini .txoRow,
+  #txoExtraEditorTools.txo-mini .txoPanelSection,
   #txoExtraEditorTools.txo-mini #txoLinkStatus,
+  #txoExtraEditorTools.txo-mini #txoSelectedStatus,
   #txoExtraEditorTools.txo-mini #txoHelpText {
     display: none !important;
   }
@@ -454,12 +480,102 @@
 <script>
 (function () {
   const TOOL_ID = "txoExtraEditorTools";
-  const POS_KEY = "txo_helper_position_clean_v1";
+  const POS_KEY = "txo_helper_position_final_v1";
   const DRAFT_KEY = "txo_editor_draft_html_v1";
+  const STYLE_ID = "txoAnimStylesPersist";
+
   let selectedElement = null;
 
-  const old = document.getElementById(TOOL_ID);
-  if (old) old.remove();
+  const EFFECT_CLASSES = [
+    "txo-anim-breathe",
+    "txo-anim-flash",
+    "txo-anim-slide",
+    "txo-anim-float",
+    "txo-anim-glow",
+    "txo-anim-shake",
+    "txo-anim-ticker"
+  ];
+
+  const EFFECT_CSS = `
+.txo-anim-breathe {
+  animation: txoBreathe var(--txo-anim-speed, 2s) ease-in-out infinite !important;
+  transform-origin: center center !important;
+}
+@keyframes txoBreathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+.txo-anim-flash {
+  animation: txoFlash var(--txo-anim-speed, 1s) step-end infinite !important;
+}
+@keyframes txoFlash {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0.25; }
+}
+
+.txo-anim-slide {
+  display: inline-block !important;
+  animation: txoSlide var(--txo-anim-speed, 2s) ease-in-out infinite alternate !important;
+}
+@keyframes txoSlide {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(32px); }
+}
+
+.txo-anim-float {
+  display: inline-block !important;
+  animation: txoFloat var(--txo-anim-speed, 2.4s) ease-in-out infinite !important;
+}
+@keyframes txoFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.txo-anim-glow {
+  animation: txoGlow var(--txo-anim-speed, 1.8s) ease-in-out infinite alternate !important;
+}
+@keyframes txoGlow {
+  0% {
+    text-shadow: 0 0 0 transparent;
+    filter: drop-shadow(0 0 0 transparent);
+  }
+  100% {
+    text-shadow: 0 0 14px currentColor;
+    filter: drop-shadow(0 0 10px currentColor);
+  }
+}
+
+.txo-anim-shake {
+  display: inline-block !important;
+  animation: txoShake var(--txo-anim-speed, .35s) linear infinite !important;
+}
+@keyframes txoShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+}
+
+.txo-anim-ticker {
+  display: inline-block !important;
+  animation: txoTicker var(--txo-anim-speed, 4s) ease-in-out infinite alternate !important;
+  white-space: nowrap !important;
+}
+@keyframes txoTicker {
+  0% { transform: translateX(-28px); }
+  100% { transform: translateX(28px); }
+}
+`;
+
+  const oldPanel = document.getElementById(TOOL_ID);
+  if (oldPanel) oldPanel.remove();
+
+  const oldShield = document.getElementById("txoDragShield");
+  if (oldShield) oldShield.remove();
+
+  const shield = document.createElement("div");
+  shield.id = "txoDragShield";
+  document.body.appendChild(shield);
 
   function makePanel() {
     const panel = document.createElement("div");
@@ -487,6 +603,12 @@
         <span></span>
       </div>
 
+      <div class="txoPanelSection">
+        <div class="txoPanelSectionTitle">選択</div>
+        <button type="button" id="txoPickModeBtn" style="width:100%;">次にクリックした要素を選択</button>
+        <div id="txoSelectedStatus">未選択</div>
+      </div>
+
       <input id="txoFontInput" type="text" placeholder="フォント名を入力 例: Noto Sans JP">
 
       <div class="txoRow">
@@ -499,10 +621,37 @@
         <button type="button" id="txoClearDraftBtn">削除</button>
       </div>
 
+      <div class="txoPanelSection">
+        <div class="txoPanelSectionTitle">エフェクト</div>
+
+        <select id="txoEffectSelect">
+          <option value="none">なし</option>
+          <option value="breathe">呼吸</option>
+          <option value="flash">フラッシュ</option>
+          <option value="slide">左右に動く</option>
+          <option value="float">上下にふわふわ</option>
+          <option value="glow">光る</option>
+          <option value="shake">ブルブル</option>
+          <option value="ticker">流れる文字風</option>
+        </select>
+
+        <select id="txoEffectSpeed">
+          <option value="3.5s">ゆっくり</option>
+          <option value="2s" selected>普通</option>
+          <option value="0.8s">速い</option>
+          <option value="0.35s">かなり速い</option>
+        </select>
+
+        <div class="txoRow">
+          <button type="button" id="txoApplyEffectBtn">反映</button>
+          <button type="button" id="txoRemoveEffectBtn">解除</button>
+        </div>
+      </div>
+
       <div id="txoLinkStatus">リンクなし</div>
 
       <div id="txoHelpText">
-        ↕ 移動を押したままドラッグできます。動かない場合は矢印ボタンで移動できます。
+        移動できない原因はiframeです。今回からドラッグ中だけ透明の板を出して、マウスを奪われないようにしています。
       </div>
     `;
 
@@ -511,6 +660,29 @@
   }
 
   const panel = makePanel();
+
+  function getFrame() {
+    return document.querySelector("iframe");
+  }
+
+  function getEditorDocument() {
+    const frame = getFrame();
+    if (frame && frame.contentDocument) return frame.contentDocument;
+    return document;
+  }
+
+  function getEditableRoot() {
+    const doc = getEditorDocument();
+
+    return (
+      doc.querySelector("[data-editor-root]") ||
+      doc.querySelector("#editor-root") ||
+      doc.querySelector("#canvas") ||
+      doc.querySelector(".canvas") ||
+      doc.querySelector("[contenteditable='true']") ||
+      doc.body
+    );
+  }
 
   function loadPosition() {
     try {
@@ -550,8 +722,6 @@
 
   loadPosition();
 
-  const handle = document.getElementById("txoDragHandle");
-
   let dragging = false;
   let startX = 0;
   let startY = 0;
@@ -559,66 +729,52 @@
   let startTop = 0;
 
   function startDrag(e) {
-    const point = e.touches ? e.touches[0] : e;
-
     dragging = true;
-    startX = point.clientX;
-    startY = point.clientY;
+
+    startX = e.clientX;
+    startY = e.clientY;
 
     const r = panel.getBoundingClientRect();
     startLeft = r.left;
     startTop = r.top;
 
+    shield.style.display = "block";
     document.body.style.userSelect = "none";
-
-    window.addEventListener("mousemove", moveDrag, true);
-    window.addEventListener("mouseup", stopDrag, true);
-    window.addEventListener("touchmove", moveDrag, { capture: true, passive: false });
-    window.addEventListener("touchend", stopDrag, true);
 
     e.preventDefault();
     e.stopPropagation();
-    return false;
   }
 
   function moveDrag(e) {
     if (!dragging) return;
 
-    const point = e.touches ? e.touches[0] : e;
-
     setPanelPosition(
-      startLeft + point.clientX - startX,
-      startTop + point.clientY - startY
+      startLeft + e.clientX - startX,
+      startTop + e.clientY - startY
     );
 
     e.preventDefault();
     e.stopPropagation();
-    return false;
   }
 
   function stopDrag(e) {
     if (!dragging) return;
 
     dragging = false;
+    shield.style.display = "none";
     document.body.style.userSelect = "";
-
-    window.removeEventListener("mousemove", moveDrag, true);
-    window.removeEventListener("mouseup", stopDrag, true);
-    window.removeEventListener("touchmove", moveDrag, true);
-    window.removeEventListener("touchend", stopDrag, true);
+    savePosition();
 
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
-
-    savePosition();
-    return false;
   }
 
-  handle.onmousedown = startDrag;
-  handle.ontouchstart = startDrag;
-  handle.ondragstart = function () { return false; };
+  document.getElementById("txoDragHandle").addEventListener("mousedown", startDrag, true);
+  shield.addEventListener("mousemove", moveDrag, true);
+  shield.addEventListener("mouseup", stopDrag, true);
+  window.addEventListener("mouseup", stopDrag, true);
 
   document.querySelectorAll("#txoMovePad button").forEach(btn => {
     btn.addEventListener("click", function () {
@@ -664,28 +820,6 @@
     };
   });
 
-  function getFrame() {
-    return document.querySelector("iframe");
-  }
-
-  function getEditorDocument() {
-    const frame = getFrame();
-    if (frame && frame.contentDocument) return frame.contentDocument;
-    return document;
-  }
-
-  function getEditableRoot() {
-    const doc = getEditorDocument();
-    return (
-      doc.querySelector("[data-editor-root]") ||
-      doc.querySelector("#editor-root") ||
-      doc.querySelector("#canvas") ||
-      doc.querySelector(".canvas") ||
-      doc.querySelector("[contenteditable='true']") ||
-      doc.body
-    );
-  }
-
   function clearSelectedOutline() {
     const doc = getEditorDocument();
     doc.querySelectorAll(".txo-selected-element").forEach(el => {
@@ -695,13 +829,32 @@
 
   function setSelectedElement(el) {
     if (!el) return;
+
     const doc = getEditorDocument();
+
     if (el === doc.body || el === doc.documentElement) return;
 
     clearSelectedOutline();
+
     selectedElement = el;
     selectedElement.classList.add("txo-selected-element");
+
+    updateSelectedStatus();
     updateLinkStatus();
+  }
+
+  function updateSelectedStatus() {
+    const status = document.getElementById("txoSelectedStatus");
+    if (!status) return;
+
+    if (!selectedElement) {
+      status.textContent = "未選択";
+      return;
+    }
+
+    const tag = selectedElement.tagName ? selectedElement.tagName.toLowerCase() : "element";
+    const text = (selectedElement.innerText || selectedElement.textContent || "").trim().replace(/\s+/g, " ");
+    status.textContent = "選択中: " + tag + (text ? " / " + text.slice(0, 24) : "");
   }
 
   function findLinkElement(el) {
@@ -722,6 +875,131 @@
       status.textContent = "リンクなし";
     }
   }
+
+  let pickMode = false;
+
+  document.getElementById("txoPickModeBtn").addEventListener("click", function () {
+    pickMode = true;
+    this.textContent = "選択したい文字/画像をクリック";
+    this.style.background = "#0b5c4d";
+  });
+
+  function setupEditorEvents() {
+    const doc = getEditorDocument();
+    if (doc.__txoFinalHelperReady) return;
+    doc.__txoFinalHelperReady = true;
+
+    doc.addEventListener("click", function (e) {
+      if (!e.target || !e.target.tagName) return;
+
+      const tag = e.target.tagName.toLowerCase();
+      if (tag === "body" || tag === "html") return;
+
+      setSelectedElement(e.target);
+
+      if (pickMode) {
+        pickMode = false;
+        const btn = document.getElementById("txoPickModeBtn");
+        if (btn) {
+          btn.textContent = "次にクリックした要素を選択";
+          btn.style.background = "";
+        }
+      }
+    }, true);
+
+    doc.addEventListener("keydown", function (e) {
+      if (e.key !== "Backspace" && e.key !== "Delete") return;
+
+      const active = doc.activeElement;
+      const typing =
+        active &&
+        (
+          active.tagName === "INPUT" ||
+          active.tagName === "TEXTAREA" ||
+          active.isContentEditable
+        );
+
+      if (typing) return;
+      if (!selectedElement) return;
+
+      e.preventDefault();
+
+      if (confirm("選択中の要素を削除しますか？")) {
+        selectedElement.remove();
+        selectedElement = null;
+        updateSelectedStatus();
+        updateLinkStatus();
+      }
+    }, true);
+  }
+
+  function ensureEffectStyle() {
+    const doc = getEditorDocument();
+
+    let style = doc.getElementById(STYLE_ID);
+
+    if (!style) {
+      style = doc.createElement("style");
+      style.id = STYLE_ID;
+      style.textContent = EFFECT_CSS;
+
+      if (doc.head) {
+        doc.head.appendChild(style);
+      } else {
+        doc.body.appendChild(style);
+      }
+    } else {
+      style.textContent = EFFECT_CSS;
+    }
+  }
+
+  function clearEffects(el) {
+    if (!el) return;
+
+    EFFECT_CLASSES.forEach(cls => {
+      el.classList.remove(cls);
+    });
+
+    el.removeAttribute("data-txo-effect");
+    el.style.removeProperty("--txo-anim-speed");
+  }
+
+  function applyEffect() {
+    if (!selectedElement) {
+      alert("先に「次にクリックした要素を選択」を押して、エフェクトを付けたい文字や画像をクリックしてください。");
+      return;
+    }
+
+    const effect = document.getElementById("txoEffectSelect").value;
+    const speed = document.getElementById("txoEffectSpeed").value;
+
+    ensureEffectStyle();
+    clearEffects(selectedElement);
+
+    if (effect === "none") {
+      alert("エフェクトを解除しました。");
+      return;
+    }
+
+    selectedElement.classList.add("txo-anim-" + effect);
+    selectedElement.setAttribute("data-txo-effect", effect);
+    selectedElement.style.setProperty("--txo-anim-speed", speed);
+
+    alert("エフェクトを反映しました。");
+  }
+
+  function removeEffect() {
+    if (!selectedElement) {
+      alert("先に解除したい要素を選択してください。");
+      return;
+    }
+
+    clearEffects(selectedElement);
+    alert("エフェクトを解除しました。");
+  }
+
+  document.getElementById("txoApplyEffectBtn").addEventListener("click", applyEffect);
+  document.getElementById("txoRemoveEffectBtn").addEventListener("click", removeEffect);
 
   function loadGoogleFont(fontName) {
     const name = String(fontName || "").trim();
@@ -771,8 +1049,12 @@
 
     const root = getEditableRoot();
     root.innerHTML = saved;
+
     selectedElement = null;
+    updateSelectedStatus();
     updateLinkStatus();
+    ensureEffectStyle();
+
     alert("下書きを読み込みました。");
   });
 
@@ -782,372 +1064,28 @@
     alert("下書きを削除しました。");
   });
 
-  function setupEditorEvents() {
-    const doc = getEditorDocument();
-    if (doc.__txoHelperEventsReady) return;
-    doc.__txoHelperEventsReady = true;
-
-    doc.addEventListener("click", function (e) {
-      if (!e.target || !e.target.tagName) return;
-
-      const tag = e.target.tagName.toLowerCase();
-      if (tag === "body" || tag === "html") return;
-
-      setSelectedElement(e.target);
-    }, true);
-
-    doc.addEventListener("keydown", function (e) {
-      if (e.key !== "Backspace" && e.key !== "Delete") return;
-
-      const active = doc.activeElement;
-      const typing =
-        active &&
-        (
-          active.tagName === "INPUT" ||
-          active.tagName === "TEXTAREA" ||
-          active.isContentEditable
-        );
-
-      if (typing) return;
-      if (!selectedElement) return;
-
-      e.preventDefault();
-
-      if (confirm("選択中の要素を削除しますか？")) {
-        selectedElement.remove();
-        selectedElement = null;
-        updateLinkStatus();
-      }
-    }, true);
-  }
-
   setupEditorEvents();
-
-  const frame = getFrame();
-  if (frame) {
-    frame.addEventListener("load", function () {
-      setupEditorEvents();
-      updateLinkStatus();
-    });
-  }
-
+  ensureEffectStyle();
+  updateSelectedStatus();
   updateLinkStatus();
-})();
-</script>
-<!-- TXO_CLEAN_DRAG_HELPER_END -->
-<!-- TXO_TEXT_EFFECTS_START -->
-<style>
-  #txoEffectBox {
-    margin-top: 8px !important;
-    padding: 8px !important;
-    border: 1px solid #167d6b !important;
-    border-radius: 8px !important;
-    background: #001f1a !important;
-  }
-
-  #txoEffectBox label {
-    display: block !important;
-    color: #a6d8cc !important;
-    font-size: 11px !important;
-    margin-bottom: 5px !important;
-  }
-
-  #txoEffectBox select {
-    width: 100% !important;
-    background: #001f1a !important;
-    color: #ffffff !important;
-    border: 1px solid #167d6b !important;
-    border-radius: 7px !important;
-    padding: 7px 8px !important;
-    font-size: 12px !important;
-    margin-bottom: 7px !important;
-  }
-
-  #txoEffectBox .txoEffectRow {
-    display: flex !important;
-    gap: 6px !important;
-  }
-
-  #txoEffectBox .txoEffectRow button {
-    flex: 1 !important;
-  }
-</style>
-
-<script>
-(function () {
-  const STYLE_ID = "txoAnimStylesPersist";
-  const EFFECT_CLASSES = [
-    "txo-anim-breathe",
-    "txo-anim-flash",
-    "txo-anim-slide",
-    "txo-anim-float",
-    "txo-anim-glow",
-    "txo-anim-shake",
-    "txo-anim-ticker"
-  ];
-
-  const EFFECT_CSS = `
-#txoAnimStylesPersist {
-  display: none !important;
-}
-
-.txo-anim-breathe {
-  animation: txoBreathe var(--txo-anim-speed, 2.2s) ease-in-out infinite !important;
-  transform-origin: center center !important;
-}
-
-@keyframes txoBreathe {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.07); }
-}
-
-.txo-anim-flash {
-  animation: txoFlash var(--txo-anim-speed, 1s) step-end infinite !important;
-}
-
-@keyframes txoFlash {
-  0%, 49% { opacity: 1; }
-  50%, 100% { opacity: 0.25; }
-}
-
-.txo-anim-slide {
-  display: inline-block !important;
-  animation: txoSlide var(--txo-anim-speed, 2.2s) ease-in-out infinite alternate !important;
-}
-
-@keyframes txoSlide {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(28px); }
-}
-
-.txo-anim-float {
-  display: inline-block !important;
-  animation: txoFloat var(--txo-anim-speed, 2.4s) ease-in-out infinite !important;
-}
-
-@keyframes txoFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-9px); }
-}
-
-.txo-anim-glow {
-  animation: txoGlow var(--txo-anim-speed, 1.8s) ease-in-out infinite alternate !important;
-}
-
-@keyframes txoGlow {
-  0% {
-    text-shadow: 0 0 0 transparent;
-    filter: drop-shadow(0 0 0 transparent);
-  }
-  100% {
-    text-shadow: 0 0 12px currentColor;
-    filter: drop-shadow(0 0 8px currentColor);
-  }
-}
-
-.txo-anim-shake {
-  display: inline-block !important;
-  animation: txoShake var(--txo-anim-speed, .35s) linear infinite !important;
-}
-
-@keyframes txoShake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-2px); }
-  75% { transform: translateX(2px); }
-}
-
-.txo-anim-ticker {
-  display: inline-block !important;
-  animation: txoTicker var(--txo-anim-speed, 4s) ease-in-out infinite alternate !important;
-  white-space: nowrap !important;
-}
-
-@keyframes txoTicker {
-  0% { transform: translateX(-24px); }
-  100% { transform: translateX(24px); }
-}
-`;
-
-  function getFrame() {
-    return document.querySelector("iframe");
-  }
-
-  function getEditorDocument() {
-    const frame = getFrame();
-    if (frame && frame.contentDocument) return frame.contentDocument;
-    return document;
-  }
-
-  function getEditableRoot() {
-    const doc = getEditorDocument();
-
-    return (
-      doc.querySelector("[data-editor-root]") ||
-      doc.querySelector("#editor-root") ||
-      doc.querySelector("#canvas") ||
-      doc.querySelector(".canvas") ||
-      doc.querySelector("[contenteditable='true']") ||
-      doc.body
-    );
-  }
-
-  function ensureEffectStyle() {
-    const doc = getEditorDocument();
-    const root = getEditableRoot();
-
-    let style = doc.getElementById(STYLE_ID);
-
-    if (!style) {
-      style = doc.createElement("style");
-      style.id = STYLE_ID;
-      style.textContent = EFFECT_CSS;
-
-      if (root && root.firstChild) {
-        root.insertBefore(style, root.firstChild);
-      } else if (root) {
-        root.appendChild(style);
-      } else {
-        doc.body.appendChild(style);
-      }
-    } else {
-      style.textContent = EFFECT_CSS;
-    }
-  }
-
-  function getSelectedElement() {
-    const doc = getEditorDocument();
-    return doc.querySelector(".txo-selected-element");
-  }
-
-  function clearEffects(el) {
-    if (!el) return;
-
-    EFFECT_CLASSES.forEach(cls => {
-      el.classList.remove(cls);
-    });
-
-    el.removeAttribute("data-txo-effect");
-    el.style.removeProperty("--txo-anim-speed");
-  }
-
-  function applyEffect() {
-    const effectSelect = document.getElementById("txoEffectSelect");
-    const speedSelect = document.getElementById("txoEffectSpeed");
-
-    if (!effectSelect || !speedSelect) return;
-
-    const effect = effectSelect.value;
-    const speed = speedSelect.value;
-
-    const el = getSelectedElement();
-
-    if (!el) {
-      alert("先にエフェクトを付けたい文字・画像・ボタンをクリックして選択してください。");
-      return;
-    }
-
-    ensureEffectStyle();
-    clearEffects(el);
-
-    if (effect === "none") {
-      alert("エフェクトを解除しました。");
-      return;
-    }
-
-    el.classList.add("txo-anim-" + effect);
-    el.setAttribute("data-txo-effect", effect);
-    el.style.setProperty("--txo-anim-speed", speed);
-
-    alert("エフェクトを反映しました。");
-  }
-
-  function removeEffect() {
-    const el = getSelectedElement();
-
-    if (!el) {
-      alert("先にエフェクトを外したい要素をクリックして選択してください。");
-      return;
-    }
-
-    clearEffects(el);
-    alert("エフェクトを解除しました。");
-  }
-
-  function installEffectUI() {
-    const panel = document.getElementById("txoExtraEditorTools");
-    if (!panel) return false;
-
-    if (document.getElementById("txoEffectBox")) return true;
-
-    const box = document.createElement("div");
-    box.id = "txoEffectBox";
-
-    box.innerHTML = `
-      <label>エフェクト</label>
-      <select id="txoEffectSelect">
-        <option value="none">なし</option>
-        <option value="breathe">呼吸</option>
-        <option value="flash">フラッシュ</option>
-        <option value="slide">左右に動く</option>
-        <option value="float">上下にふわふわ</option>
-        <option value="glow">光る</option>
-        <option value="shake">ブルブル</option>
-        <option value="ticker">流れる文字風</option>
-      </select>
-
-      <label>スピード</label>
-      <select id="txoEffectSpeed">
-        <option value="3.5s">ゆっくり</option>
-        <option value="2s" selected>普通</option>
-        <option value="0.8s">速い</option>
-        <option value="0.35s">かなり速い</option>
-      </select>
-
-      <div class="txoEffectRow">
-        <button type="button" id="txoApplyEffectBtn">反映</button>
-        <button type="button" id="txoRemoveEffectBtn">解除</button>
-      </div>
-    `;
-
-    const linkStatus = panel.querySelector("#txoLinkStatus");
-
-    if (linkStatus) {
-      panel.insertBefore(box, linkStatus);
-    } else {
-      panel.appendChild(box);
-    }
-
-    document.getElementById("txoApplyEffectBtn").addEventListener("click", applyEffect);
-    document.getElementById("txoRemoveEffectBtn").addEventListener("click", removeEffect);
-
-    ensureEffectStyle();
-
-    return true;
-  }
-
-  if (!installEffectUI()) {
-    let count = 0;
-    const timer = setInterval(function () {
-      count++;
-
-      if (installEffectUI() || count > 60) {
-        clearInterval(timer);
-      }
-    }, 100);
-  }
 
   const frame = getFrame();
-
   if (frame) {
     frame.addEventListener("load", function () {
-      setTimeout(ensureEffectStyle, 300);
+      setTimeout(function () {
+        setupEditorEvents();
+        ensureEffectStyle();
+        updateSelectedStatus();
+        updateLinkStatus();
+      }, 300);
     });
   }
 })();
 </script>
-<!-- TXO_TEXT_EFFECTS_END -->
+<!-- TXO_FINAL_HELPER_END -->
 </body>
 </html>
+
 
 
 
