@@ -3090,8 +3090,166 @@
   }
 })();
 </script>
+<script id="clean-editor-artifacts-before-publish">
+(function () {
+  function isCyanStyle(value) {
+    if (!value) return false;
+    value = String(value).toLowerCase();
+    return (
+      value.includes("rgb(0, 255") ||
+      value.includes("rgb(0,255") ||
+      value.includes("#00ffd") ||
+      value.includes("#00ff") ||
+      value.includes("cyan") ||
+      value.includes("aqua")
+    );
+  }
+
+  function cleanRoot(root) {
+    if (!root) return;
+
+    const doc = root.nodeType === 9 ? root : root.ownerDocument;
+    const scope = root.nodeType === 9 ? root : root;
+
+    const removeSelectors = [
+      ".resize-handle",
+      ".resizeHandles",
+      ".resize-dot",
+      ".selection-handle",
+      ".editor-handle",
+      ".drag-handle",
+      ".selected-handle",
+      ".image-resize-handle",
+      ".text-resize-handle",
+      ".move-handle",
+      ".rotate-handle",
+      "[data-resize-handle]",
+      "[data-editor-handle]",
+      "[data-selection-handle]",
+      "[data-drag-handle]",
+      "[contenteditable='false'].resize-handle"
+    ];
+
+    scope.querySelectorAll(removeSelectors.join(",")).forEach(function (el) {
+      el.remove();
+    });
+
+    scope.querySelectorAll("*").forEach(function (el) {
+      const cs = doc.defaultView.getComputedStyle(el);
+
+      const w = parseFloat(cs.width) || 0;
+      const h = parseFloat(cs.height) || 0;
+
+      const looksLikeSmallHandle =
+        w > 0 &&
+        h > 0 &&
+        w <= 24 &&
+        h <= 24 &&
+        (cs.position === "absolute" || cs.position === "fixed") &&
+        (
+          isCyanStyle(cs.backgroundColor) ||
+          isCyanStyle(cs.borderColor) ||
+          isCyanStyle(cs.outlineColor)
+        );
+
+      if (looksLikeSmallHandle) {
+        el.remove();
+        return;
+      }
+
+      el.classList.remove(
+        "selected",
+        "is-selected",
+        "editing-selected",
+        "editor-selected",
+        "selected-element",
+        "image-selected",
+        "active-selected"
+      );
+
+      el.removeAttribute("data-selected");
+      el.removeAttribute("data-editor-selected");
+      el.removeAttribute("data-resize-handle");
+      el.removeAttribute("data-selection-handle");
+      el.removeAttribute("contenteditable");
+
+      const style = el.style;
+
+      if (
+        isCyanStyle(style.outline) ||
+        isCyanStyle(style.outlineColor) ||
+        isCyanStyle(style.boxShadow)
+      ) {
+        style.outline = "none";
+        style.outlineColor = "";
+        style.boxShadow = "none";
+      }
+
+      // 公開時だけ、選択用の水色borderを消す
+      if (
+        isCyanStyle(style.border) ||
+        isCyanStyle(style.borderColor) ||
+        isCyanStyle(cs.borderTopColor) ||
+        isCyanStyle(cs.borderRightColor) ||
+        isCyanStyle(cs.borderBottomColor) ||
+        isCyanStyle(cs.borderLeftColor)
+      ) {
+        style.borderColor = "transparent";
+        style.outline = "none";
+        style.boxShadow = "none";
+      }
+    });
+  }
+
+  function getFrameDocument() {
+    const frame =
+      document.getElementById("editorFrame") ||
+      document.querySelector("iframe");
+
+    if (!frame) return null;
+
+    try {
+      return frame.contentDocument || frame.contentWindow.document;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function cleanBeforeSaveOrPublish() {
+    cleanRoot(document);
+
+    const frameDoc = getFrameDocument();
+    if (frameDoc) {
+      cleanRoot(frameDoc);
+    }
+  }
+
+  // 保存・公開ボタンを押す前に先に掃除する
+  document.addEventListener(
+    "click",
+    function (e) {
+      const btn = e.target.closest && e.target.closest("button");
+      if (!btn) return;
+
+      const text = (btn.textContent || "").replace(/\s+/g, "");
+
+      if (
+        text.includes("公開") ||
+        text.includes("保存") ||
+        text.includes("下書き保存")
+      ) {
+        cleanBeforeSaveOrPublish();
+      }
+    },
+    true
+  );
+
+  window.cleanBeforeSaveOrPublish = cleanBeforeSaveOrPublish;
+})();
+</script>
 </body>
 </html>
+
 
 
 
