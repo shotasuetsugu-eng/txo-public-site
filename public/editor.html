@@ -2677,7 +2677,7 @@
 
     const bgUrlBtn = makeButton(
       "txoBgUrlBtn",
-      "背景URL",
+      "背景画像追加",
       "txo-bg-btn",
       setBackgroundByUrl
     );
@@ -2769,8 +2769,331 @@
 })();
 </script>
 <!-- TXO_BACKGROUND_ZINDEX_END -->
+<style>
+  #editorTabToolbar {
+    position: sticky;
+    top: 0;
+    z-index: 99999;
+    background: #031f1c;
+    border-bottom: 2px solid #00b894;
+    padding: 6px;
+    box-sizing: border-box;
+  }
+
+  #editorTabToolbar .tab-buttons {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+  }
+
+  #editorTabToolbar .tab-button {
+    border: 1px solid #00b894;
+    background: #06352f;
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    white-space: nowrap;
+  }
+
+  #editorTabToolbar .tab-button.active {
+    background: #00b894;
+    color: #001f1a;
+  }
+
+  #editorTabToolbar .tab-panel {
+    display: none;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding-top: 4px;
+  }
+
+  #editorTabToolbar .tab-panel.active {
+    display: flex;
+  }
+
+  #editorTabToolbar button:not(.tab-button) {
+    margin: 0 !important;
+    white-space: nowrap;
+  }
+</style>
+
+<script>
+(function () {
+  function normalizeText(text) {
+    return (text || "").replace(/\s+/g, "").trim();
+  }
+
+  function makeToolbarTabs() {
+    if (document.getElementById("editorTabToolbar")) return;
+
+    const groups = [
+      {
+        name: "基本操作",
+        items: ["1つ戻る", "ドラッグ移動", "自由リサイズ", "文字追加", "画像追加", "動画追加"]
+      },
+      {
+        name: "背景",
+        items: ["背景画像追加", "選択画像を背景", "背景解除"]
+      },
+      {
+        name: "画像サイズ",
+        items: ["画像 全幅", "画像 枠に合わせる", "画像 枠いっぱい", "画像 自由サイズ"]
+      },
+      {
+        name: "重なり順",
+        items: ["前面へ", "背面へ", "最前面", "最背面"]
+      },
+      {
+        name: "保存",
+        items: ["保存", "読込", "下書き保存", "下書き読込", "公開"]
+      }
+    ];
+
+    const allButtons = Array.from(document.querySelectorAll("button"));
+
+    const buttonMap = new Map();
+
+    allButtons.forEach((btn) => {
+      const key = normalizeText(btn.textContent);
+      if (!buttonMap.has(key)) {
+        buttonMap.set(key, btn);
+      }
+    });
+
+    const toolbar = document.createElement("div");
+    toolbar.id = "editorTabToolbar";
+
+    const tabButtons = document.createElement("div");
+    tabButtons.className = "tab-buttons";
+
+    const panels = [];
+
+    groups.forEach((group, index) => {
+      const tab = document.createElement("button");
+      tab.type = "button";
+      tab.className = "tab-button" + (index === 0 ? " active" : "");
+      tab.textContent = group.name;
+
+      const panel = document.createElement("div");
+      panel.className = "tab-panel" + (index === 0 ? " active" : "");
+
+      group.items.forEach((label) => {
+        const btn = buttonMap.get(normalizeText(label));
+        if (btn) {
+          panel.appendChild(btn);
+        }
+      });
+
+      tab.addEventListener("click", () => {
+        document.querySelectorAll("#editorTabToolbar .tab-button").forEach((b) => {
+          b.classList.remove("active");
+        });
+
+        document.querySelectorAll("#editorTabToolbar .tab-panel").forEach((p) => {
+          p.classList.remove("active");
+        });
+
+        tab.classList.add("active");
+        panel.classList.add("active");
+      });
+
+      tabButtons.appendChild(tab);
+      panels.push(panel);
+    });
+
+    toolbar.appendChild(tabButtons);
+    panels.forEach((panel) => toolbar.appendChild(panel));
+
+    document.body.insertBefore(toolbar, document.body.firstChild);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", makeToolbarTabs);
+  } else {
+    makeToolbarTabs();
+  }
+})();
+</script>
+<script>
+/* === 背景画像追加パッチ === */
+(function () {
+  const PATCH_ID = "bg-image-upload-patch";
+  if (document.getElementById(PATCH_ID)) return;
+
+  const marker = document.createElement("script");
+  marker.id = PATCH_ID;
+  marker.type = "application/json";
+  marker.textContent = "installed";
+  document.head.appendChild(marker);
+
+  let lastBackgroundTarget = null;
+
+  function normalizeText(text) {
+    return (text || "").replace(/\s+/g, "").trim();
+  }
+
+  function getEditorFrame() {
+    return document.getElementById("editorFrame") || document.querySelector("iframe");
+  }
+
+  function getFrameDocument() {
+    const frame = getEditorFrame();
+    if (!frame) return null;
+    return frame.contentDocument || frame.contentWindow?.document || null;
+  }
+
+  function bindFrameClickTracker() {
+    const doc = getFrameDocument();
+    if (!doc || doc.__bgImageTrackerBound) return;
+
+    doc.__bgImageTrackerBound = true;
+
+    doc.addEventListener(
+      "click",
+      function (e) {
+        lastBackgroundTarget = e.target;
+      },
+      true
+    );
+  }
+
+  function getBackgroundTarget() {
+    const doc = getFrameDocument();
+    const frame = getEditorFrame();
+
+    if (!doc) return null;
+
+    // 既存コード側で selectedElement が window に出ている場合
+    if (window.selectedElement && window.selectedElement.ownerDocument === doc) {
+      return window.selectedElement;
+    }
+
+    if (
+      frame &&
+      frame.contentWindow &&
+      frame.contentWindow.selectedElement &&
+      frame.contentWindow.selectedElement.ownerDocument === doc
+    ) {
+      return frame.contentWindow.selectedElement;
+    }
+
+    // よくある選択クラスを探す
+    const selected =
+      doc.querySelector(".selected") ||
+      doc.querySelector(".is-selected") ||
+      doc.querySelector(".editing-selected") ||
+      doc.querySelector("[data-selected='true']");
+
+    if (selected) return selected;
+
+    // 最後にクリックした場所
+    if (lastBackgroundTarget && lastBackgroundTarget.ownerDocument === doc) {
+      return lastBackgroundTarget;
+    }
+
+    // 未選択ならページ全体
+    return doc.body || doc.documentElement;
+  }
+
+  function applyBackgroundImage(dataUrl) {
+    const target = getBackgroundTarget();
+
+    if (!target) {
+      alert("背景を設定する場所が見つかりませんでした");
+      return;
+    }
+
+    target.style.backgroundImage = 'url("' + dataUrl + '")';
+    target.style.backgroundSize = "cover";
+    target.style.backgroundPosition = "center";
+    target.style.backgroundRepeat = "no-repeat";
+
+    if (target.tagName === "BODY" || target.tagName === "HTML") {
+      target.style.minHeight = "100vh";
+    }
+
+    alert("背景画像を追加しました");
+  }
+
+  function openBackgroundImagePicker() {
+    bindFrameClickTracker();
+
+    let input = document.getElementById("backgroundImageUploadInput");
+
+    if (!input) {
+      input = document.createElement("input");
+      input.id = "backgroundImageUploadInput";
+      input.type = "file";
+      input.accept = "image/*";
+      input.style.display = "none";
+      document.body.appendChild(input);
+
+      input.addEventListener("change", function () {
+        const file = input.files && input.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+
+        reader.onload = function () {
+          applyBackgroundImage(reader.result);
+          input.value = "";
+        };
+
+        reader.readAsDataURL(file);
+      });
+    }
+
+    input.click();
+  }
+
+  function setupBackgroundImageButton() {
+    bindFrameClickTracker();
+
+    const buttons = Array.from(document.querySelectorAll("button"));
+
+    let btn = buttons.find(function (button) {
+      const text = normalizeText(button.textContent);
+      return text === "背景画像追加" || text === "背景URL";
+    });
+
+    if (!btn) return;
+
+    btn.textContent = "背景画像追加";
+
+    // 元のURL入力イベントを消すためにボタンを複製して差し替え
+    const cleanBtn = btn.cloneNode(true);
+    cleanBtn.textContent = "背景画像追加";
+    cleanBtn.removeAttribute("onclick");
+
+    btn.parentNode.replaceChild(cleanBtn, btn);
+
+    cleanBtn.addEventListener("click", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      openBackgroundImagePicker();
+    });
+  }
+
+  const frame = getEditorFrame();
+  if (frame) {
+    frame.addEventListener("load", bindFrameClickTracker);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", setupBackgroundImageButton);
+  } else {
+    setupBackgroundImageButton();
+  }
+})();
+</script>
 </body>
 </html>
+
+
 
 
 
