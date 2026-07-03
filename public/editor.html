@@ -604,23 +604,135 @@
 })();
 </script>
 <!-- TXO_EXTRA_EDITOR_TOOLS_END -->
-<!-- TXO_FLOATING_PANEL_FIX_START -->
+<!-- TXO_DRAGGABLE_PANEL_FIX_START -->
 <style>
-  /* 右側の設定パネルにかぶらないように移動 */
+  /* 編集補助パネルを黒系にして、自由に動かせるUIへ変更 */
   #txoExtraEditorTools {
-    right: 340px !important;
-    bottom: 18px !important;
-    width: 300px !important;
-    max-height: 360px !important;
+    position: fixed !important;
+    left: 24px !important;
+    top: 180px !important;
+    right: auto !important;
+    bottom: auto !important;
+    z-index: 999999 !important;
+
+    width: 260px !important;
+    max-height: 380px !important;
     overflow: auto !important;
+
+    padding: 10px !important;
+    background: rgba(2, 22, 18, 0.96) !important;
+    color: #eafff7 !important;
+    border: 1px solid #00d4a6 !important;
+    border-radius: 10px !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.45) !important;
+
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+    font-size: 12px !important;
   }
 
-  /* 折りたたみ状態 */
-  #txoExtraEditorTools.txo-extra-minimized {
-    width: 120px !important;
-    max-height: 42px !important;
-    overflow: hidden !important;
+  #txoExtraEditorTools .txoTitle {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    cursor: move !important;
+    user-select: none !important;
+
+    margin: -10px -10px 8px -10px !important;
     padding: 8px 10px !important;
+    background: #001f1a !important;
+    color: #ffffff !important;
+    border-bottom: 1px solid #00d4a6 !important;
+    border-radius: 10px 10px 0 0 !important;
+    font-weight: 700 !important;
+  }
+
+  #txoExtraEditorTools .txoTitle::before {
+    content: "↕ 移動";
+    font-size: 11px;
+    color: #8fffe0;
+    margin-right: auto;
+  }
+
+  #txoExtraEditorTools input {
+    width: 100% !important;
+    background: #001f1a !important;
+    color: #ffffff !important;
+    border: 1px solid #167d6b !important;
+    border-radius: 7px !important;
+    padding: 7px 8px !important;
+    font-size: 12px !important;
+  }
+
+  #txoExtraEditorTools input::placeholder {
+    color: #7aa89d !important;
+  }
+
+  #txoExtraEditorTools button {
+    background: #062b24 !important;
+    color: #ffffff !important;
+    border: 1px solid #00a985 !important;
+    border-radius: 7px !important;
+    padding: 6px 8px !important;
+    font-size: 12px !important;
+    cursor: pointer !important;
+  }
+
+  #txoExtraEditorTools button:hover {
+    background: #084437 !important;
+  }
+
+  #txoExtraEditorTools .txoRow {
+    display: flex !important;
+    gap: 6px !important;
+    margin-top: 7px !important;
+  }
+
+  #txoExtraEditorTools .txoRow button {
+    flex: 1 !important;
+  }
+
+  #txoExtraEditorTools .txoStatus {
+    margin-top: 8px !important;
+    padding: 7px !important;
+    border-radius: 7px !important;
+    background: #001f1a !important;
+    color: #d7fff5 !important;
+    border: 1px solid #167d6b !important;
+    word-break: break-all !important;
+    line-height: 1.35 !important;
+  }
+
+  #txoExtraEditorTools .txoSmall {
+    margin-top: 7px !important;
+    color: #a6d8cc !important;
+    font-size: 11px !important;
+    line-height: 1.35 !important;
+  }
+
+  #txoExtraToggleBtn,
+  #txoExtraCloseBtn,
+  #txoExtraResetBtn {
+    flex: none !important;
+    padding: 3px 8px !important;
+    font-size: 11px !important;
+    border-radius: 999px !important;
+    white-space: nowrap !important;
+  }
+
+  #txoExtraEditorTools.txo-extra-minimized {
+    width: 110px !important;
+    height: 36px !important;
+    max-height: 36px !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+  }
+
+  #txoExtraEditorTools.txo-extra-minimized .txoTitle {
+    margin: 0 !important;
+    border-radius: 10px !important;
+    height: 36px !important;
+    padding: 0 8px !important;
   }
 
   #txoExtraEditorTools.txo-extra-minimized input,
@@ -630,60 +742,211 @@
     display: none !important;
   }
 
-  #txoExtraEditorTools .txoTitle {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    gap: 8px !important;
+  #txoExtraEditorTools.txo-extra-hidden {
+    display: none !important;
   }
 
-  #txoExtraToggleBtn {
-    padding: 3px 8px !important;
-    font-size: 12px !important;
+  #txoExtraShowBtn {
+    position: fixed !important;
+    left: 24px !important;
+    top: 180px !important;
+    z-index: 999999 !important;
+
+    background: #001f1a !important;
+    color: #ffffff !important;
+    border: 1px solid #00d4a6 !important;
     border-radius: 999px !important;
-    white-space: nowrap !important;
+    padding: 8px 12px !important;
+    font-size: 12px !important;
+    cursor: pointer !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.35) !important;
+  }
+
+  #txoExtraShowBtn:hover {
+    background: #084437 !important;
   }
 </style>
 
 <script>
 (function () {
-  function setupExtraPanelFix() {
+  const PANEL_KEY = "txo_editor_helper_panel_position_v2";
+
+  function setupDraggablePanel() {
     const panel = document.getElementById("txoExtraEditorTools");
     if (!panel) return false;
 
     const title = panel.querySelector(".txoTitle");
     if (!title) return false;
 
-    if (document.getElementById("txoExtraToggleBtn")) return true;
+    if (panel.dataset.draggableReady === "1") return true;
+    panel.dataset.draggableReady = "1";
 
-    const btn = document.createElement("button");
-    btn.id = "txoExtraToggleBtn";
-    btn.type = "button";
-    btn.textContent = "隠す";
+    title.textContent = "編集補助";
 
-    btn.addEventListener("click", function () {
-      panel.classList.toggle("txo-extra-minimized");
-      btn.textContent = panel.classList.contains("txo-extra-minimized") ? "表示" : "隠す";
+    const btnWrap = document.createElement("div");
+    btnWrap.style.display = "flex";
+    btnWrap.style.gap = "4px";
+    btnWrap.style.marginLeft = "auto";
+
+    const toggleBtn = document.createElement("button");
+    toggleBtn.id = "txoExtraToggleBtn";
+    toggleBtn.type = "button";
+    toggleBtn.textContent = "小さく";
+
+    const resetBtn = document.createElement("button");
+    resetBtn.id = "txoExtraResetBtn";
+    resetBtn.type = "button";
+    resetBtn.textContent = "戻す";
+
+    const closeBtn = document.createElement("button");
+    closeBtn.id = "txoExtraCloseBtn";
+    closeBtn.type = "button";
+    closeBtn.textContent = "×";
+
+    btnWrap.appendChild(toggleBtn);
+    btnWrap.appendChild(resetBtn);
+    btnWrap.appendChild(closeBtn);
+    title.appendChild(btnWrap);
+
+    let saved = null;
+    try {
+      saved = JSON.parse(localStorage.getItem(PANEL_KEY) || "null");
+    } catch (e) {
+      saved = null;
+    }
+
+    if (saved && typeof saved.left === "number" && typeof saved.top === "number") {
+      panel.style.left = saved.left + "px";
+      panel.style.top = saved.top + "px";
+      panel.style.right = "auto";
+      panel.style.bottom = "auto";
+    }
+
+    function clampPosition(left, top) {
+      const maxLeft = Math.max(0, window.innerWidth - panel.offsetWidth - 8);
+      const maxTop = Math.max(0, window.innerHeight - panel.offsetHeight - 8);
+
+      return {
+        left: Math.min(Math.max(8, left), maxLeft),
+        top: Math.min(Math.max(8, top), maxTop)
+      };
+    }
+
+    function savePosition() {
+      const rect = panel.getBoundingClientRect();
+      localStorage.setItem(PANEL_KEY, JSON.stringify({
+        left: rect.left,
+        top: rect.top
+      }));
+    }
+
+    let dragging = false;
+    let startX = 0;
+    let startY = 0;
+    let startLeft = 0;
+    let startTop = 0;
+
+    title.addEventListener("mousedown", function (e) {
+      if (e.target && e.target.tagName === "BUTTON") return;
+
+      dragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+
+      const rect = panel.getBoundingClientRect();
+      startLeft = rect.left;
+      startTop = rect.top;
+
+      document.body.style.userSelect = "none";
+      e.preventDefault();
     });
 
-    title.appendChild(btn);
+    document.addEventListener("mousemove", function (e) {
+      if (!dragging) return;
+
+      const next = clampPosition(
+        startLeft + e.clientX - startX,
+        startTop + e.clientY - startY
+      );
+
+      panel.style.left = next.left + "px";
+      panel.style.top = next.top + "px";
+      panel.style.right = "auto";
+      panel.style.bottom = "auto";
+    });
+
+    document.addEventListener("mouseup", function () {
+      if (!dragging) return;
+
+      dragging = false;
+      document.body.style.userSelect = "";
+      savePosition();
+    });
+
+    toggleBtn.addEventListener("click", function () {
+      panel.classList.toggle("txo-extra-minimized");
+      toggleBtn.textContent = panel.classList.contains("txo-extra-minimized") ? "開く" : "小さく";
+      savePosition();
+    });
+
+    resetBtn.addEventListener("click", function () {
+      panel.classList.remove("txo-extra-minimized");
+      panel.style.left = "24px";
+      panel.style.top = "180px";
+      panel.style.right = "auto";
+      panel.style.bottom = "auto";
+      localStorage.removeItem(PANEL_KEY);
+      toggleBtn.textContent = "小さく";
+    });
+
+    closeBtn.addEventListener("click", function () {
+      panel.classList.add("txo-extra-hidden");
+
+      let showBtn = document.getElementById("txoExtraShowBtn");
+      if (!showBtn) {
+        showBtn = document.createElement("button");
+        showBtn.id = "txoExtraShowBtn";
+        showBtn.type = "button";
+        showBtn.textContent = "編集補助";
+
+        showBtn.addEventListener("click", function () {
+          panel.classList.remove("txo-extra-hidden");
+          showBtn.remove();
+        });
+
+        document.body.appendChild(showBtn);
+      }
+
+      const rect = panel.getBoundingClientRect();
+      showBtn.style.left = rect.left + "px";
+      showBtn.style.top = rect.top + "px";
+    });
+
+    window.addEventListener("resize", function () {
+      const rect = panel.getBoundingClientRect();
+      const next = clampPosition(rect.left, rect.top);
+      panel.style.left = next.left + "px";
+      panel.style.top = next.top + "px";
+      savePosition();
+    });
 
     return true;
   }
 
-  if (!setupExtraPanelFix()) {
+  if (!setupDraggablePanel()) {
     let count = 0;
     const timer = setInterval(function () {
       count++;
-      if (setupExtraPanelFix() || count > 40) {
+      if (setupDraggablePanel() || count > 50) {
         clearInterval(timer);
       }
     }, 100);
   }
 })();
 </script>
-<!-- TXO_FLOATING_PANEL_FIX_END -->
+<!-- TXO_DRAGGABLE_PANEL_FIX_END -->
 </body>
 </html>
+
 
 
