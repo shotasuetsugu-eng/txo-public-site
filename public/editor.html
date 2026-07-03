@@ -1969,8 +1969,406 @@
 })();
 </script>
 <!-- TXO_STABLE_RESIZE_UNDO_END -->
+<!-- TXO_IMAGE_AUTO_SIZE_START -->
+<style>
+  .txo-image-size-btn {
+    background: #003f35 !important;
+    color: #ffffff !important;
+    border: 1px solid #00d4a6 !important;
+    border-radius: 6px !important;
+    padding: 9px 12px !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+  }
+
+  .txo-image-size-btn:hover {
+    background: #006050 !important;
+  }
+
+  .txo-image-size-cover-btn {
+    background: #4a2600 !important;
+    border-color: #ffb020 !important;
+  }
+
+  .txo-image-size-free-btn {
+    background: #172b4d !important;
+    border-color: #4c9aff !important;
+  }
+</style>
+
+<script>
+(function () {
+  let selectedImage = null;
+  let imageObserver = null;
+
+  function getFrame() {
+    return document.querySelector("iframe");
+  }
+
+  function getEditorDocument() {
+    const frame = getFrame();
+
+    if (frame && frame.contentDocument) {
+      return frame.contentDocument;
+    }
+
+    return document;
+  }
+
+  function getEditableRoot() {
+    const doc = getEditorDocument();
+
+    return (
+      doc.querySelector("[data-editor-root]") ||
+      doc.querySelector("#editor-root") ||
+      doc.querySelector("#canvas") ||
+      doc.querySelector(".canvas") ||
+      doc.querySelector("[contenteditable='true']") ||
+      doc.body
+    );
+  }
+
+  function findSelectedImage() {
+    const doc = getEditorDocument();
+
+    const selected = doc.querySelector(".txo-selected-element");
+
+    if (selected) {
+      if (selected.tagName && selected.tagName.toLowerCase() === "img") {
+        selectedImage = selected;
+        return selectedImage;
+      }
+
+      const imgInside = selected.querySelector && selected.querySelector("img");
+
+      if (imgInside) {
+        selectedImage = imgInside;
+        return selectedImage;
+      }
+    }
+
+    if (selectedImage && doc.body.contains(selectedImage)) {
+      return selectedImage;
+    }
+
+    return null;
+  }
+
+  function markImage(img) {
+    if (!img || !img.style) return;
+
+    img.setAttribute("data-txo-image-managed", "1");
+
+    if (!img.style.maxWidth) {
+      img.style.maxWidth = "100%";
+    }
+
+    if (!img.style.height) {
+      img.style.height = "auto";
+    }
+
+    if (!img.style.objectFit) {
+      img.style.objectFit = "contain";
+    }
+
+    if (!img.style.display) {
+      img.style.display = "block";
+    }
+  }
+
+  function setupImageClickSelect() {
+    const doc = getEditorDocument();
+
+    if (!doc || doc.__txoImageAutoSizeReady) return;
+
+    doc.__txoImageAutoSizeReady = true;
+
+    doc.addEventListener("click", function (e) {
+      if (!e.target || !e.target.tagName) return;
+
+      const tag = e.target.tagName.toLowerCase();
+
+      if (tag === "img") {
+        selectedImage = e.target;
+        markImage(selectedImage);
+      } else {
+        const img = e.target.querySelector && e.target.querySelector("img");
+
+        if (img) {
+          selectedImage = img;
+          markImage(selectedImage);
+        }
+      }
+    }, true);
+  }
+
+  function setupAutoImageObserver() {
+    const root = getEditableRoot();
+
+    if (!root) return;
+
+    if (imageObserver) {
+      imageObserver.disconnect();
+      imageObserver = null;
+    }
+
+    imageObserver = new MutationObserver(function (mutations) {
+      mutations.forEach(function (mutation) {
+        mutation.addedNodes.forEach(function (node) {
+          if (!node || !node.tagName) return;
+
+          if (node.tagName.toLowerCase() === "img") {
+            markImage(node);
+          }
+
+          if (node.querySelectorAll) {
+            node.querySelectorAll("img").forEach(markImage);
+          }
+        });
+      });
+    });
+
+    imageObserver.observe(root, {
+      childList: true,
+      subtree: true
+    });
+  }
+
+  function getImageOrAlert() {
+    const img = findSelectedImage();
+
+    if (!img) {
+      alert("先にサイズ変更したい画像をクリックしてください。");
+      return null;
+    }
+
+    markImage(img);
+    return img;
+  }
+
+  function clearImageSizeMode(img) {
+    img.classList.remove("txo-image-auto-width");
+    img.classList.remove("txo-image-fit-frame");
+    img.classList.remove("txo-image-cover-frame");
+    img.classList.remove("txo-image-free-size");
+  }
+
+  function imageAutoWidth() {
+    const img = getImageOrAlert();
+    if (!img) return;
+
+    clearImageSizeMode(img);
+
+    img.style.width = "100%";
+    img.style.height = "auto";
+    img.style.maxWidth = "100%";
+    img.style.objectFit = "contain";
+    img.style.display = "block";
+
+    img.setAttribute("data-txo-image-size", "auto-width");
+
+    alert("画像をレイアウト幅に自動調整しました。");
+  }
+
+  function imageFitFrame() {
+    const img = getImageOrAlert();
+    if (!img) return;
+
+    clearImageSizeMode(img);
+
+    const parent = img.parentElement;
+
+    if (parent) {
+      parent.style.overflow = "hidden";
+
+      const parentRect = parent.getBoundingClientRect();
+
+      if (parentRect.height < 30) {
+        parent.style.minHeight = img.getBoundingClientRect().height + "px";
+      }
+    }
+
+    img.style.width = "100%";
+    img.style.height = "100%";
+    img.style.maxWidth = "100%";
+    img.style.objectFit = "contain";
+    img.style.display = "block";
+
+    img.setAttribute("data-txo-image-size", "fit-frame");
+
+    alert("画像を枠内に全体表示で合わせました。");
+  }
+
+  function imageCoverFrame() {
+    const img = getImageOrAlert();
+    if (!img) return;
+
+    clearImageSizeMode(img);
+
+    const parent = img.parentElement;
+
+    if (parent) {
+      parent.style.overflow = "hidden";
+
+      const parentRect = parent.getBoundingClientRect();
+
+      if (parentRect.height < 30) {
+        parent.style.minHeight = img.getBoundingClientRect().height + "px";
+      }
+    }
+
+    img.style.width = "100%";
+    img.style.height = "100%";
+    img.style.maxWidth = "100%";
+    img.style.objectFit = "cover";
+    img.style.display = "block";
+
+    img.setAttribute("data-txo-image-size", "cover-frame");
+
+    alert("画像を枠いっぱいに表示しました。端は少し切れる場合があります。");
+  }
+
+  function imageFreeSize() {
+    const img = getImageOrAlert();
+    if (!img) return;
+
+    const rect = img.getBoundingClientRect();
+
+    const width = prompt(
+      "画像の幅を入力してください。\n例: 300px / 50% / auto",
+      img.style.width || Math.round(rect.width) + "px"
+    );
+
+    if (width === null) return;
+
+    const height = prompt(
+      "画像の高さを入力してください。\n例: 200px / auto",
+      img.style.height || "auto"
+    );
+
+    if (height === null) return;
+
+    clearImageSizeMode(img);
+
+    img.style.width = width.trim() || "auto";
+    img.style.height = height.trim() || "auto";
+    img.style.maxWidth = "none";
+    img.style.objectFit = "contain";
+    img.style.display = "block";
+
+    img.setAttribute("data-txo-image-size", "free");
+
+    alert("画像サイズを変更しました。");
+  }
+
+  function addImageButtons() {
+    if (document.getElementById("txoImageAutoWidthBtn")) return;
+
+    const buttons = Array.from(document.querySelectorAll("button"));
+
+    const imageAddBtn = buttons.find(btn => {
+      return (btn.textContent || "").trim() === "画像追加";
+    });
+
+    const publishBtn = buttons.find(btn => {
+      return (btn.textContent || "").trim() === "公開";
+    });
+
+    const area =
+      imageAddBtn && imageAddBtn.parentElement
+        ? imageAddBtn.parentElement
+        : publishBtn && publishBtn.parentElement
+          ? publishBtn.parentElement
+          : document.body;
+
+    function makeBtn(id, text, className, onClick) {
+      const btn = document.createElement("button");
+      btn.id = id;
+      btn.type = "button";
+      btn.className = "txo-image-size-btn " + (className || "");
+      btn.textContent = text;
+      btn.addEventListener("click", onClick);
+      return btn;
+    }
+
+    const autoBtn = makeBtn(
+      "txoImageAutoWidthBtn",
+      "画像 全幅",
+      "",
+      imageAutoWidth
+    );
+
+    const fitBtn = makeBtn(
+      "txoImageFitFrameBtn",
+      "画像 枠に合わせる",
+      "",
+      imageFitFrame
+    );
+
+    const coverBtn = makeBtn(
+      "txoImageCoverFrameBtn",
+      "画像 枠いっぱい",
+      "txo-image-size-cover-btn",
+      imageCoverFrame
+    );
+
+    const freeBtn = makeBtn(
+      "txoImageFreeSizeBtn",
+      "画像 自由サイズ",
+      "txo-image-size-free-btn",
+      imageFreeSize
+    );
+
+    if (imageAddBtn && imageAddBtn.nextSibling) {
+      area.insertBefore(freeBtn, imageAddBtn.nextSibling);
+      area.insertBefore(coverBtn, freeBtn);
+      area.insertBefore(fitBtn, coverBtn);
+      area.insertBefore(autoBtn, fitBtn);
+    } else {
+      area.appendChild(autoBtn);
+      area.appendChild(fitBtn);
+      area.appendChild(coverBtn);
+      area.appendChild(freeBtn);
+    }
+  }
+
+  function setupAll() {
+    addImageButtons();
+    setupImageClickSelect();
+    setupAutoImageObserver();
+
+    const root = getEditableRoot();
+
+    if (root && root.querySelectorAll) {
+      root.querySelectorAll("img").forEach(function (img) {
+        if (img.getAttribute("data-txo-image-managed") === "1") return;
+        markImage(img);
+      });
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", setupAll);
+  } else {
+    setupAll();
+  }
+
+  setTimeout(setupAll, 500);
+  setTimeout(setupAll, 1500);
+
+  const frame = getFrame();
+
+  if (frame) {
+    frame.addEventListener("load", function () {
+      setTimeout(setupAll, 300);
+    });
+  }
+})();
+</script>
+<!-- TXO_IMAGE_AUTO_SIZE_END -->
 </body>
 </html>
+
 
 
 
