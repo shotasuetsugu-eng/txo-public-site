@@ -67,7 +67,45 @@
     const navEditor=document.querySelector('#navEditor'),move=document.querySelector('#move'),file=document.querySelector('#file');
     let selected=null,moving=false,history=[];
     const snapshot=()=>{if(selected)history.push({el:selected,html:selected.innerHTML,style:selected.style.cssText})};
-    const doLogin=async()=>{loginError.textContent='';loginButton.disabled=true;loginButton.textContent='ログイン中...';try{const r=await fetch('/api/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password:password.value})});if(r.ok){login.style.display='none';app.style.display='block'}else{const data=await r.json().catch(()=>({}));loginError.textContent=data.error||'ログインできませんでした'}}catch(error){loginError.textContent='サーバーに接続できません。少し待ってから再度お試しください。'}finally{loginButton.disabled=false;loginButton.textContent='ログイン'}};loginButton.onclick=doLogin;password.addEventListener('keydown',event=>{if(event.key==='Enter')doLogin()});
+    const doLogin=async()=>{
+      loginError.textContent='';
+      loginButton.disabled=true;
+      let response=null;
+      try{
+        for(let attempt=1;attempt<=6;attempt++){
+          loginButton.textContent=`サーバー起動待ち (${attempt}/6)`;
+          try{
+            response=await fetch(`${window.location.origin}/api/login`,{
+              method:'POST',
+              credentials:'include',
+              cache:'no-store',
+              headers:{'content-type':'application/json'},
+              body:JSON.stringify({password:password.value})
+            });
+            if(response.status>=500)throw new Error(`Server waking: ${response.status}`);
+            break;
+          }catch(error){
+            if(attempt===6)throw error;
+            loginError.textContent='サーバーを起動しています。このままお待ちください。';
+            await new Promise(resolve=>setTimeout(resolve,5000));
+          }
+        }
+        if(response?.ok){
+          login.style.display='none';
+          app.style.display='block';
+        }else{
+          const data=await response?.json().catch(()=>({}));
+          loginError.textContent=data?.error||'ログインできませんでした';
+        }
+      }catch(error){
+        loginError.textContent='サーバーに接続できません。ページを再読み込みしてお試しください。';
+      }finally{
+        loginButton.disabled=false;
+        loginButton.textContent='ログイン';
+      }
+    };
+    loginButton.onclick=doLogin;
+    password.addEventListener('keydown',event=>{if(event.key==='Enter')doLogin()});
     const selectElement=el=>{if(selected)selected.style.outline='';selected=el;if(!selected)return;selectedName.textContent=selected.tagName+' / '+(selected.textContent||'').slice(0,40);text.value=selected.children.length?'':selected.textContent||'';linkUrl.value=selected.closest('a')?.getAttribute('href')||'';selected.style.outline='2px solid #00e5c8'};
     const pageIdOf=el=>{const value=el.getAttribute('onclick')||'';return value.match(/showPage\(['"]([^'"]+)/)?.[1]||''};
     const renderNavEditor=()=>{const d=frame.contentDocument;if(!d)return;const tabs=[...d.querySelectorAll('.nav-tab')];navEditor.innerHTML='';tabs.forEach((tab,index)=>{const row=document.createElement('div');row.className='nav-editor-row';const input=document.createElement('input');input.value=tab.textContent.trim();input.oninput=()=>tab.textContent=input.value;const actions=document.createElement('div');actions.className='nav-editor-actions';const open=document.createElement('button');open.textContent='開く';open.onclick=()=>frame.contentWindow.showPage(pageIdOf(tab));const up=document.createElement('button');up.textContent='↑';up.onclick=()=>{if(tab.previousElementSibling)tab.parentElement.insertBefore(tab,tab.previousElementSibling);renderNavEditor()};const down=document.createElement('button');down.textContent='↓';down.onclick=()=>{if(tab.nextElementSibling)tab.parentElement.insertBefore(tab.nextElementSibling,tab);renderNavEditor()};const del=document.createElement('button');del.textContent='×';del.onclick=()=>{snapshot();tab.remove();renderNavEditor()};actions.append(open,up,down,del);row.append(input,actions);navEditor.append(row)})};
