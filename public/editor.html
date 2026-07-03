@@ -280,5 +280,330 @@
       }
     };
   </script>
+<!-- TXO_EXTRA_EDITOR_TOOLS_START -->
+<style>
+  #txoExtraEditorTools {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 999999;
+    width: 280px;
+    padding: 12px;
+    background: #ffffff;
+    border: 1px solid #d0d7de;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 13px;
+  }
+
+  #txoExtraEditorTools button,
+  #txoExtraEditorTools input {
+    box-sizing: border-box;
+    font-size: 13px;
+  }
+
+  #txoExtraEditorTools button {
+    cursor: pointer;
+    border: 1px solid #c9d1d9;
+    background: #f6f8fa;
+    border-radius: 8px;
+    padding: 7px 9px;
+  }
+
+  #txoExtraEditorTools button:hover {
+    background: #eef2f6;
+  }
+
+  #txoExtraEditorTools input {
+    width: 100%;
+    border: 1px solid #c9d1d9;
+    border-radius: 8px;
+    padding: 7px 8px;
+  }
+
+  #txoExtraEditorTools .txoRow {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  #txoExtraEditorTools .txoRow button {
+    flex: 1;
+  }
+
+  #txoExtraEditorTools .txoStatus {
+    margin-top: 8px;
+    padding: 8px;
+    border-radius: 8px;
+    background: #f6f8fa;
+    color: #24292f;
+    word-break: break-all;
+    line-height: 1.4;
+  }
+
+  #txoExtraEditorTools .txoTitle {
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  #txoExtraEditorTools .txoSmall {
+    font-size: 12px;
+    color: #57606a;
+    margin-top: 6px;
+    line-height: 1.4;
+  }
+
+  .txo-selected-element {
+    outline: 2px solid #0969da !important;
+    outline-offset: 2px !important;
+  }
+</style>
+
+<script>
+(function () {
+  const TOOL_ID = "txoExtraEditorTools";
+  const STORAGE_KEY = "txo_editor_draft_html_v1";
+  let selectedElement = null;
+
+  if (document.getElementById(TOOL_ID)) return;
+
+  function getFrame() {
+    return document.querySelector("iframe");
+  }
+
+  function getEditorDocument() {
+    const frame = getFrame();
+    if (frame && frame.contentDocument) {
+      return frame.contentDocument;
+    }
+    return document;
+  }
+
+  function getEditableRoot() {
+    const doc = getEditorDocument();
+
+    const root =
+      doc.querySelector("[data-editor-root]") ||
+      doc.querySelector("#editor-root") ||
+      doc.querySelector("#canvas") ||
+      doc.querySelector(".canvas") ||
+      doc.querySelector("[contenteditable='true']") ||
+      doc.body;
+
+    return root;
+  }
+
+  function clearSelectedOutline() {
+    const doc = getEditorDocument();
+    doc.querySelectorAll(".txo-selected-element").forEach(el => {
+      el.classList.remove("txo-selected-element");
+    });
+  }
+
+  function setSelectedElement(el) {
+    if (!el) return;
+
+    const doc = getEditorDocument();
+
+    if (el === doc.body || el === doc.documentElement) {
+      return;
+    }
+
+    clearSelectedOutline();
+    selectedElement = el;
+    selectedElement.classList.add("txo-selected-element");
+    updateLinkStatus();
+  }
+
+  function findLinkElement(el) {
+    if (!el) return null;
+    if (el.tagName && el.tagName.toLowerCase() === "a") return el;
+    if (el.closest) return el.closest("a");
+    return null;
+  }
+
+  function updateLinkStatus() {
+    const status = document.getElementById("txoLinkStatus");
+    if (!status) return;
+
+    const link = findLinkElement(selectedElement);
+
+    if (link && link.getAttribute("href")) {
+      status.textContent = "リンクあり: " + link.getAttribute("href");
+      status.style.background = "#ddf4ff";
+      return;
+    }
+
+    status.textContent = "リンクなし";
+    status.style.background = "#f6f8fa";
+  }
+
+  function loadGoogleFont(fontName) {
+    const safeName = String(fontName || "").trim();
+    if (!safeName) return;
+
+    const id = "txo-google-font-" + safeName.replace(/[^a-zA-Z0-9]/g, "-");
+
+    if (document.getElementById(id)) return;
+
+    const link = document.createElement("link");
+    link.id = id;
+    link.rel = "stylesheet";
+    link.href = "https://fonts.googleapis.com/css2?family=" + encodeURIComponent(safeName).replace(/%20/g, "+") + ":wght@300;400;500;600;700&display=swap";
+    document.head.appendChild(link);
+  }
+
+  function applyFont() {
+    const input = document.getElementById("txoFontInput");
+    const fontName = input ? input.value.trim() : "";
+
+    if (!fontName) {
+      alert("フォント名を入力してください。例: Noto Sans JP / M PLUS Rounded 1c / Kosugi Maru");
+      return;
+    }
+
+    loadGoogleFont(fontName);
+
+    const target = selectedElement || getEditableRoot();
+    target.style.fontFamily = "'" + fontName + "', sans-serif";
+
+    alert("フォントを反映しました: " + fontName);
+  }
+
+  function saveDraft() {
+    const root = getEditableRoot();
+
+    localStorage.setItem(STORAGE_KEY, root.innerHTML);
+    alert("下書きを保存しました。公開とは別で、このブラウザ内に保存されています。");
+  }
+
+  function loadDraft() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+
+    if (!saved) {
+      alert("保存された下書きがありません。");
+      return;
+    }
+
+    if (!confirm("保存した下書きを読み込みますか？ 今の編集内容は上書きされます。")) {
+      return;
+    }
+
+    const root = getEditableRoot();
+    root.innerHTML = saved;
+
+    selectedElement = null;
+    clearSelectedOutline();
+    updateLinkStatus();
+
+    alert("下書きを読み込みました。");
+  }
+
+  function clearDraft() {
+    if (!confirm("保存した下書きを削除しますか？")) return;
+
+    localStorage.removeItem(STORAGE_KEY);
+    alert("下書きを削除しました。");
+  }
+
+  function setupEditorEvents() {
+    const doc = getEditorDocument();
+
+    doc.addEventListener("click", function (e) {
+      const tag = e.target && e.target.tagName ? e.target.tagName.toLowerCase() : "";
+
+      if (tag === "body" || tag === "html") return;
+
+      setSelectedElement(e.target);
+    }, true);
+
+    doc.addEventListener("keyup", updateLinkStatus, true);
+    doc.addEventListener("mouseup", updateLinkStatus, true);
+  }
+
+  function setupDeleteShortcut() {
+    document.addEventListener("keydown", function (e) {
+      const key = e.key;
+
+      if (key !== "Backspace" && key !== "Delete") return;
+
+      const active = document.activeElement;
+      const isTyping =
+        active &&
+        (
+          active.tagName === "INPUT" ||
+          active.tagName === "TEXTAREA" ||
+          active.isContentEditable
+        );
+
+      if (isTyping) return;
+
+      if (!selectedElement) return;
+
+      const doc = getEditorDocument();
+
+      if (selectedElement === doc.body || selectedElement === doc.documentElement) return;
+
+      e.preventDefault();
+
+      if (confirm("選択中の要素を削除しますか？")) {
+        selectedElement.remove();
+        selectedElement = null;
+        updateLinkStatus();
+      }
+    });
+  }
+
+  function createTools() {
+    const panel = document.createElement("div");
+    panel.id = TOOL_ID;
+
+    panel.innerHTML = `
+      <div class="txoTitle">編集補助</div>
+
+      <input id="txoFontInput" type="text" placeholder="フォント名を入力 例: Noto Sans JP">
+
+      <div class="txoRow">
+        <button type="button" id="txoApplyFontBtn">フォント反映</button>
+      </div>
+
+      <div class="txoRow">
+        <button type="button" id="txoSaveDraftBtn">保存</button>
+        <button type="button" id="txoLoadDraftBtn">読込</button>
+        <button type="button" id="txoClearDraftBtn">削除</button>
+      </div>
+
+      <div id="txoLinkStatus" class="txoStatus">リンクなし</div>
+
+      <div class="txoSmall">
+        要素をクリックすると選択できます。画像などはBackspace/Deleteで削除できます。
+      </div>
+    `;
+
+    document.body.appendChild(panel);
+
+    document.getElementById("txoApplyFontBtn").addEventListener("click", applyFont);
+    document.getElementById("txoSaveDraftBtn").addEventListener("click", saveDraft);
+    document.getElementById("txoLoadDraftBtn").addEventListener("click", loadDraft);
+    document.getElementById("txoClearDraftBtn").addEventListener("click", clearDraft);
+  }
+
+  createTools();
+  setupEditorEvents();
+  setupDeleteShortcut();
+  updateLinkStatus();
+
+  const frame = getFrame();
+  if (frame) {
+    frame.addEventListener("load", function () {
+      setupEditorEvents();
+      updateLinkStatus();
+    });
+  }
+})();
+</script>
+<!-- TXO_EXTRA_EDITOR_TOOLS_END -->
 </body>
 </html>
+
