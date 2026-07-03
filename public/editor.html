@@ -1083,8 +1083,237 @@
 })();
 </script>
 <!-- TXO_FINAL_HELPER_END -->
+<!-- TXO_HARD_DRAG_FIX_START -->
+<style>
+  #txoExtraEditorTools {
+    position: fixed !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    z-index: 2147483647 !important;
+  }
+
+  #txoDragHandle {
+    cursor: move !important;
+    user-select: none !important;
+    touch-action: none !important;
+  }
+
+  #txoExtraHeader {
+    cursor: move !important;
+    user-select: none !important;
+    touch-action: none !important;
+  }
+
+  #txoExtraHeader button {
+    cursor: pointer !important;
+  }
+</style>
+
+<script>
+(function () {
+  const POS_KEY = "txo_helper_hard_drag_position_v1";
+
+  function installHardDrag() {
+    const panel = document.getElementById("txoExtraEditorTools");
+    const oldHandle = document.getElementById("txoDragHandle");
+    const header = document.getElementById("txoExtraHeader");
+
+    if (!panel || !oldHandle || !header) return false;
+
+    if (panel.dataset.hardDragReady === "1") return true;
+    panel.dataset.hardDragReady = "1";
+
+    // 古いイベントを外すため、移動ボタンを作り直す
+    const handle = oldHandle.cloneNode(true);
+    oldHandle.replaceWith(handle);
+
+    const oldShield = document.getElementById("txoDragShield");
+    if (oldShield) oldShield.remove();
+
+    function forcePosition(left, top) {
+      const maxLeft = Math.max(8, window.innerWidth - panel.offsetWidth - 8);
+      const maxTop = Math.max(8, window.innerHeight - panel.offsetHeight - 8);
+
+      const nextLeft = Math.min(Math.max(8, left), maxLeft);
+      const nextTop = Math.min(Math.max(8, top), maxTop);
+
+      panel.style.setProperty("position", "fixed", "important");
+      panel.style.setProperty("left", nextLeft + "px", "important");
+      panel.style.setProperty("top", nextTop + "px", "important");
+      panel.style.setProperty("right", "auto", "important");
+      panel.style.setProperty("bottom", "auto", "important");
+      panel.style.setProperty("transform", "none", "important");
+
+      localStorage.setItem(POS_KEY, JSON.stringify({
+        left: nextLeft,
+        top: nextTop
+      }));
+    }
+
+    try {
+      const saved = JSON.parse(localStorage.getItem(POS_KEY) || "null");
+      if (saved && typeof saved.left === "number" && typeof saved.top === "number") {
+        forcePosition(saved.left, saved.top);
+      } else {
+        const r = panel.getBoundingClientRect();
+        forcePosition(r.left || 24, r.top || 170);
+      }
+    } catch (e) {
+      const r = panel.getBoundingClientRect();
+      forcePosition(r.left || 24, r.top || 170);
+    }
+
+    let dragging = false;
+    let startX = 0;
+    let startY = 0;
+    let startLeft = 0;
+    let startTop = 0;
+    let iframeStates = [];
+
+    function disableIframes() {
+      iframeStates = Array.from(document.querySelectorAll("iframe")).map(frame => {
+        return {
+          frame,
+          old: frame.style.pointerEvents
+        };
+      });
+
+      iframeStates.forEach(item => {
+        item.frame.style.setProperty("pointer-events", "none", "important");
+      });
+    }
+
+    function restoreIframes() {
+      iframeStates.forEach(item => {
+        item.frame.style.pointerEvents = item.old || "";
+      });
+
+      iframeStates = [];
+    }
+
+    function getPoint(e) {
+      if (e.touches && e.touches[0]) return e.touches[0];
+      return e;
+    }
+
+    function startDrag(e) {
+      const target = e.target;
+
+      // 小さく、×、戻すなどのボタンはドラッグ対象外
+      if (target && target.closest && target.closest("button") && target.id !== "txoDragHandle") {
+        return;
+      }
+
+      const point = getPoint(e);
+      const r = panel.getBoundingClientRect();
+
+      dragging = true;
+      startX = point.clientX;
+      startY = point.clientY;
+      startLeft = r.left;
+      startTop = r.top;
+
+      disableIframes();
+
+      document.body.style.userSelect = "none";
+      document.body.style.cursor = "move";
+
+      document.addEventListener("mousemove", moveDrag, true);
+      document.addEventListener("mouseup", stopDrag, true);
+      window.addEventListener("mousemove", moveDrag, true);
+      window.addEventListener("mouseup", stopDrag, true);
+
+      document.addEventListener("touchmove", moveDrag, { capture: true, passive: false });
+      document.addEventListener("touchend", stopDrag, true);
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+
+      return false;
+    }
+
+    function moveDrag(e) {
+      if (!dragging) return;
+
+      const point = getPoint(e);
+
+      forcePosition(
+        startLeft + point.clientX - startX,
+        startTop + point.clientY - startY
+      );
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+
+      return false;
+    }
+
+    function stopDrag(e) {
+      if (!dragging) return;
+
+      dragging = false;
+
+      restoreIframes();
+
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+
+      document.removeEventListener("mousemove", moveDrag, true);
+      document.removeEventListener("mouseup", stopDrag, true);
+      window.removeEventListener("mousemove", moveDrag, true);
+      window.removeEventListener("mouseup", stopDrag, true);
+
+      document.removeEventListener("touchmove", moveDrag, true);
+      document.removeEventListener("touchend", stopDrag, true);
+
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+      }
+
+      return false;
+    }
+
+    // 「↕ 移動」でも、上のバー全体でもドラッグできる
+    handle.addEventListener("mousedown", startDrag, true);
+    handle.addEventListener("touchstart", startDrag, { capture: true, passive: false });
+
+    header.addEventListener("mousedown", startDrag, true);
+    header.addEventListener("touchstart", startDrag, { capture: true, passive: false });
+
+    // 戻すボタンを押したら見える位置へ戻す
+    const resetBtn = document.querySelector('[data-move="reset"]');
+    if (resetBtn) {
+      resetBtn.addEventListener("click", function () {
+        forcePosition(24, 170);
+      }, true);
+    }
+
+    return true;
+  }
+
+  if (!installHardDrag()) {
+    let count = 0;
+    const timer = setInterval(function () {
+      count++;
+
+      if (installHardDrag() || count > 80) {
+        clearInterval(timer);
+      }
+    }, 100);
+  }
+})();
+</script>
+<!-- TXO_HARD_DRAG_FIX_END -->
 </body>
 </html>
+
 
 
 
