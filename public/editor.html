@@ -43,16 +43,61 @@
         <h3>選択中の要素</h3><p class="hint" id="selectedName">画面内の編集したい場所をクリック</p>
         <p class="hint">ページ移動は通常クリック。Navigation自体の編集はAltキーを押しながらクリックします。選択中は矢印キーで1px、Shift+矢印キーで10px移動できます（「ドラッグ移動」中はマウスでも移動可）。</p>
         <label>文字</label><input id="text">
+        <label>フォント</label>
+        <select id="fontFamily">
+          <option value="">指定なし（サイトの既定）</option>
+          <option value="'Inter',sans-serif">Inter（既定・角ゴシック）</option>
+          <option value="'Noto Sans JP',sans-serif">Noto Sans JP（角ゴシック）</option>
+          <option value="'Noto Serif JP',serif">Noto Serif JP（明朝体）</option>
+          <option value="'Zen Kaku Gothic New',sans-serif">Zen角ゴシック</option>
+          <option value="'Zen Old Mincho',serif">Zen明朝</option>
+          <option value="'Shippori Mincho',serif">しっぽり明朝</option>
+          <option value="monospace">等幅（Monospace）</option>
+          <option value="'Georgia',serif">Georgia（欧文セリフ）</option>
+        </select>
         <label>文字サイズ</label><input id="fontSize" placeholder="例: 32px">
         <label>文字色</label><input id="color" type="color">
+        <div class="panel-row" style="display:flex;gap:8px;margin:8px 0">
+          <button id="boldToggle" style="flex:1">太字</button>
+          <button id="italicToggle" style="flex:1">斜体</button>
+        </div>
+        <label>文字揃え</label>
+        <select id="textAlign">
+          <option value="">指定なし</option>
+          <option value="left">左揃え</option>
+          <option value="center">中央揃え</option>
+          <option value="right">右揃え</option>
+        </select>
+        <label>行間</label><input id="lineHeight" placeholder="例: 1.6">
+        <label>文字間隔</label><input id="letterSpacing" placeholder="例: 0.05em">
         <label>背景色</label><input id="background" type="color">
         <label>背景画像URL</label><input id="backgroundImage" placeholder="https://...">
         <label>背景動画URL</label><input id="backgroundVideo" placeholder="https://...mp4">
         <label>リンク先URL</label><input id="linkUrl" placeholder="https://...">
         <label>幅</label><input id="width" placeholder="例: 100% / 500px">
         <label>高さ</label><input id="height" placeholder="例: 400px">
+        <label>最大幅</label><input id="maxWidth" placeholder="例: 800px">
         <label>内側余白</label><input id="padding" placeholder="例: 24px">
+        <label>外側余白</label><input id="margin" placeholder="例: 16px">
         <label>角丸</label><input id="radius" placeholder="例: 8px">
+        <label>枠線の太さ</label><input id="borderWidth" placeholder="例: 1px">
+        <label>枠線の色</label><input id="borderColor" type="color">
+        <label>影</label>
+        <select id="boxShadow">
+          <option value="">なし</option>
+          <option value="0 2px 8px rgba(0,0,0,.25)">薄い影</option>
+          <option value="0 8px 24px rgba(0,0,0,.35)">中くらいの影</option>
+          <option value="0 16px 40px rgba(0,0,0,.5)">濃い影</option>
+        </select>
+        <label>不透明度（0〜100）</label><input id="opacity" placeholder="例: 100">
+        <label>重なり順（z-index）</label><input id="zIndex" placeholder="例: 10">
+        <label>画像・動画の表示方法</label>
+        <select id="objectFit">
+          <option value="">指定なし</option>
+          <option value="cover">カバー（切り抜き）</option>
+          <option value="contain">全体を収める</option>
+          <option value="fill">引き伸ばす</option>
+        </select>
         <label>レイアウト</label><select id="display"><option value="">選択</option><option value="block">通常</option><option value="flex">横並び</option><option value="grid">グリッド</option></select>
         <label>方向</label><select id="flexDirection"><option value="">選択</option><option value="row">横方向</option><option value="column">縦方向</option></select>
         <label>横の配置</label><select id="justifyContent"><option value="">選択</option><option value="flex-start">左寄せ</option><option value="center">中央</option><option value="flex-end">右寄せ</option><option value="space-between">両端揃え</option><option value="space-around">均等（外側半分）</option><option value="space-evenly">均等</option></select>
@@ -76,7 +121,52 @@
     const navEditor=document.querySelector('#navEditor'),move=document.querySelector('#move'),file=document.querySelector('#file');
     let selected=null,moving=false,history=[];
     const snapshot=()=>{if(selected)history.push({el:selected,html:selected.innerHTML,style:selected.style.cssText})};
-    const selectElement=el=>{if(selected)selected.style.outline='';selected=el;if(!selected)return;selectedName.textContent=selected.tagName+' / '+(selected.textContent||'').slice(0,40);text.value=selected.children.length?'':selected.textContent||'';linkUrl.value=selected.closest('a')?.getAttribute('href')||'';selected.style.outline='2px solid #00e5c8'};
+    const selectElement=el=>{
+      if(selected)selected.style.outline='';
+      selected=el;if(!selected)return;
+      selectedName.textContent=selected.tagName+' / '+(selected.textContent||'').slice(0,40);
+      text.value=selected.children.length?'':selected.textContent||'';
+      linkUrl.value=selected.closest('a')?.getAttribute('href')||'';
+      document.querySelector('#opacity').value=selected.style.opacity!==''?Math.round(parseFloat(selected.style.opacity)*100):'';
+      selected.style.outline='2px solid #00e5c8';
+      attachHandles();
+    };
+    let handles=[];
+    function clearHandles(){handles.forEach(h=>h.remove());handles=[]}
+    function makeHandle(cursor,onDrag){
+      const d=selected.ownerDocument;
+      const h=d.createElement('div');
+      h.style.cssText=`position:fixed;width:12px;height:12px;background:#00e5c8;border:2px solid #001b18;border-radius:2px;z-index:2147483647;cursor:${cursor}`;
+      h.addEventListener('pointerdown',e=>{
+        e.preventDefault();e.stopPropagation();
+        snapshot();
+        const startX=e.clientX,startY=e.clientY;
+        const rect=selected.getBoundingClientRect();
+        const startW=rect.width,startH=rect.height;
+        selected.style.width=startW+'px';selected.style.height=startH+'px';
+        const move=ev=>{onDrag(ev.clientX-startX,ev.clientY-startY,startW,startH);positionHandles()};
+        const up=()=>{d.removeEventListener('pointermove',move);d.removeEventListener('pointerup',up)};
+        d.addEventListener('pointermove',move);d.addEventListener('pointerup',up);
+      });
+      d.body.appendChild(h);
+      handles.push(h);
+    }
+    function positionHandles(){
+      if(!selected||handles.length<3)return;
+      const r=selected.getBoundingClientRect();
+      const [se,e,s]=handles;
+      se.style.left=(r.right-6)+'px';se.style.top=(r.bottom-6)+'px';
+      e.style.left=(r.right-6)+'px';e.style.top=(r.top+r.height/2-6)+'px';
+      s.style.left=(r.left+r.width/2-6)+'px';s.style.top=(r.bottom-6)+'px';
+    }
+    function attachHandles(){
+      clearHandles();
+      if(!selected)return;
+      makeHandle('nwse-resize',(dx,dy,w0,h0)=>{selected.style.width=Math.max(20,w0+dx)+'px';selected.style.height=Math.max(20,h0+dy)+'px'});
+      makeHandle('ew-resize',(dx,_dy,w0)=>{selected.style.width=Math.max(20,w0+dx)+'px'});
+      makeHandle('ns-resize',(_dx,dy,_w0,h0)=>{selected.style.height=Math.max(20,h0+dy)+'px'});
+      positionHandles();
+    }
     const pageIdOf=el=>{const value=el.getAttribute('onclick')||'';return value.match(/showPage\(['"]([^'"]+)/)?.[1]||''};
     const renderNavEditor=()=>{const d=frame.contentDocument;if(!d)return;const tabs=[...d.querySelectorAll('.nav-tab')];navEditor.innerHTML='';tabs.forEach((tab,index)=>{const row=document.createElement('div');row.className='nav-editor-row';const input=document.createElement('input');input.value=tab.textContent.trim();input.oninput=()=>tab.textContent=input.value;const actions=document.createElement('div');actions.className='nav-editor-actions';const open=document.createElement('button');open.textContent='開く';open.onclick=()=>frame.contentWindow.showPage(pageIdOf(tab));const up=document.createElement('button');up.textContent='↑';up.onclick=()=>{if(tab.previousElementSibling)tab.parentElement.insertBefore(tab,tab.previousElementSibling);renderNavEditor()};const down=document.createElement('button');down.textContent='↓';down.onclick=()=>{if(tab.nextElementSibling)tab.parentElement.insertBefore(tab.nextElementSibling,tab);renderNavEditor()};const del=document.createElement('button');del.textContent='×';del.onclick=()=>{snapshot();tab.remove();renderNavEditor()};actions.append(open,up,down,del);row.append(input,actions);navEditor.append(row)})};
     function nudge(dx,dy){
@@ -87,9 +177,11 @@
       const t=parseFloat(selected.style.top)||0;
       selected.style.left=(l+dx)+'px';
       selected.style.top=(t+dy)+'px';
+      positionHandles();
     }
-    frame.onload=()=>{const d=frame.contentDocument;renderNavEditor();d.addEventListener('click',e=>{const navControl=e.target.closest('.nav-tab,.logo,.navcta');if(navControl&&!e.altKey)return;e.preventDefault();e.stopPropagation();selectElement(e.target)},true);
-      d.addEventListener('pointerdown',e=>{if(!moving||!selected||e.target!==selected)return;snapshot();const x=e.clientX,y=e.clientY,l=parseFloat(selected.style.left)||0,t=parseFloat(selected.style.top)||0;selected.style.position='relative';const mm=v=>{selected.style.left=l+v.clientX-x+'px';selected.style.top=t+v.clientY-y+'px'};const up=()=>{d.removeEventListener('pointermove',mm);d.removeEventListener('pointerup',up)};d.addEventListener('pointermove',mm);d.addEventListener('pointerup',up)},true);
+    frame.onload=()=>{clearHandles();const d=frame.contentDocument;renderNavEditor();d.addEventListener('click',e=>{const navControl=e.target.closest('.nav-tab,.logo,.navcta');if(navControl&&!e.altKey)return;e.preventDefault();e.stopPropagation();selectElement(e.target)},true);
+      d.addEventListener('pointerdown',e=>{if(!moving||!selected||e.target!==selected)return;snapshot();const x=e.clientX,y=e.clientY,l=parseFloat(selected.style.left)||0,t=parseFloat(selected.style.top)||0;selected.style.position='relative';const mm=v=>{selected.style.left=l+v.clientX-x+'px';selected.style.top=t+v.clientY-y+'px';positionHandles()};const up=()=>{d.removeEventListener('pointermove',mm);d.removeEventListener('pointerup',up)};d.addEventListener('pointermove',mm);d.addEventListener('pointerup',up)},true);
+      d.addEventListener('scroll',()=>positionHandles(),true);
       d.addEventListener('keydown',e=>{
         if(!selected)return;
         const tag=(e.target.tagName||'').toLowerCase();
@@ -102,11 +194,30 @@
       },true);
     };
     const bind=(id,fn)=>document.querySelector('#'+id).onchange=e=>{if(!selected)return;snapshot();fn(e.target.value)};
+    const googleFontFamilies={"Noto Sans JP":"Noto+Sans+JP:wght@400;500;700;900","Noto Serif JP":"Noto+Serif+JP:wght@400;500;700;900","Zen Kaku Gothic New":"Zen+Kaku+Gothic+New:wght@400;500;700;900","Zen Old Mincho":"Zen+Old+Mincho:wght@400;500;700;900","Shippori Mincho":"Shippori+Mincho:wght@400;500;600;700;800"};
+    function ensureFontLoaded(v){
+      const m=(v||'').match(/'([^']+)'/);
+      if(!m)return;
+      const name=m[1],q=googleFontFamilies[name];
+      if(!q)return;
+      const d=frame.contentDocument,id='gf-'+name.replace(/\s+/g,'-');
+      if(d.getElementById(id))return;
+      const link=d.createElement('link');
+      link.id=id;link.rel='stylesheet';
+      link.href=`https://fonts.googleapis.com/css2?family=${q}&display=swap`;
+      d.head.appendChild(link);
+    }
     bind('text',v=>selected.textContent=v);bind('fontSize',v=>selected.style.fontSize=v);bind('color',v=>selected.style.color=v);bind('background',v=>selected.style.backgroundColor=v);
+    bind('fontFamily',v=>{ensureFontLoaded(v);selected.style.fontFamily=v});bind('textAlign',v=>selected.style.textAlign=v);bind('lineHeight',v=>selected.style.lineHeight=v);bind('letterSpacing',v=>selected.style.letterSpacing=v);
     bind('backgroundImage',v=>{selected.style.backgroundImage=`url("${v}")`;selected.style.backgroundSize='cover';selected.style.backgroundPosition='center'});
     bind('backgroundVideo',v=>{selected.style.position='relative';selected.style.overflow='hidden';selected.insertAdjacentHTML('afterbegin',`<video autoplay muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0"><source src="${v}"></video>`)});
     bind('linkUrl',v=>{const link=selected.closest('a');if(link)link.href=v;else{const a=selected.ownerDocument.createElement('a');a.href=v;selected.replaceWith(a);a.append(selected);selectElement(a)}});
-    bind('width',v=>selected.style.width=v);bind('height',v=>selected.style.height=v);bind('padding',v=>selected.style.padding=v);bind('radius',v=>selected.style.borderRadius=v);
+    bind('width',v=>selected.style.width=v);bind('height',v=>selected.style.height=v);bind('maxWidth',v=>selected.style.maxWidth=v);bind('padding',v=>selected.style.padding=v);bind('margin',v=>selected.style.margin=v);bind('radius',v=>selected.style.borderRadius=v);
+    bind('borderWidth',v=>{selected.style.borderWidth=v;selected.style.borderStyle=v?'solid':''});bind('borderColor',v=>{selected.style.borderColor=v;if(!selected.style.borderStyle)selected.style.borderStyle='solid';if(!selected.style.borderWidth)selected.style.borderWidth='1px'});
+    bind('boxShadow',v=>selected.style.boxShadow=v);bind('opacity',v=>selected.style.opacity=v===''?'':(Number(v)/100));bind('zIndex',v=>selected.style.zIndex=v);
+    bind('objectFit',v=>selected.style.objectFit=v);
+    document.querySelector('#boldToggle').onclick=()=>{if(!selected)return;snapshot();const isBold=getComputedStyle(selected).fontWeight>=700;selected.style.fontWeight=isBold?'400':'700'};
+    document.querySelector('#italicToggle').onclick=()=>{if(!selected)return;snapshot();const isItalic=getComputedStyle(selected).fontStyle==='italic';selected.style.fontStyle=isItalic?'normal':'italic'};
     bind('display',v=>selected.style.display=v);bind('columns',v=>{selected.style.display='grid';selected.style.gridTemplateColumns=v});bind('gap',v=>selected.style.gap=v);
     bind('flexDirection',v=>selected.style.flexDirection=v);bind('justifyContent',v=>selected.style.justifyContent=v);bind('alignItems',v=>selected.style.alignItems=v);bind('flexWrap',v=>selected.style.flexWrap=v);
     document.querySelector('#freePosition').onclick=()=>{if(!selected)return;snapshot();const parent=selected.parentElement;if(parent&&getComputedStyle(parent).position==='static')parent.style.position='relative';const rect=selected.getBoundingClientRect(),prect=parent.getBoundingClientRect();selected.style.position='absolute';selected.style.left=(rect.left-prect.left)+'px';selected.style.top=(rect.top-prect.top)+'px';selected.style.margin='0'};
@@ -140,7 +251,9 @@
     }
     document.querySelector('#publish').onclick=async()=>{
       const d=frame.contentDocument;
+      clearHandles();
       const clone=sanitizedClone(d);
+      attachHandles();
       const html='<!doctype html>\n'+clone.outerHTML;
       const r=await fetch('/api/content',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({html})});
       if(!r.ok){alert('保存に失敗しました');return}
