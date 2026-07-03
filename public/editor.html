@@ -1311,8 +1311,172 @@
 })();
 </script>
 <!-- TXO_HARD_DRAG_FIX_END -->
+<!-- TXO_DRAFT_BUTTONS_START -->
+<style>
+  .txo-draft-btn {
+    background: #003f35 !important;
+    color: #ffffff !important;
+    border: 1px solid #00d4a6 !important;
+    border-radius: 6px !important;
+    padding: 9px 14px !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+  }
+
+  .txo-draft-btn:hover {
+    background: #006050 !important;
+  }
+
+  .txo-draft-load-btn {
+    background: #172b4d !important;
+    border-color: #4c9aff !important;
+  }
+
+  .txo-draft-load-btn:hover {
+    background: #25467a !important;
+  }
+</style>
+
+<script>
+(function () {
+  const DRAFT_KEY = "txo_editor_draft_html_v2";
+
+  function getFrame() {
+    return document.querySelector("iframe");
+  }
+
+  function getEditorDocument() {
+    const frame = getFrame();
+
+    if (frame && frame.contentDocument) {
+      return frame.contentDocument;
+    }
+
+    return document;
+  }
+
+  function getEditableRoot() {
+    const doc = getEditorDocument();
+
+    return (
+      doc.querySelector("[data-editor-root]") ||
+      doc.querySelector("#editor-root") ||
+      doc.querySelector("#canvas") ||
+      doc.querySelector(".canvas") ||
+      doc.querySelector("[contenteditable='true']") ||
+      doc.body
+    );
+  }
+
+  function saveDraft() {
+    const root = getEditableRoot();
+
+    if (!root) {
+      alert("保存対象が見つかりません。");
+      return;
+    }
+
+    localStorage.setItem(DRAFT_KEY, root.innerHTML);
+    localStorage.setItem(DRAFT_KEY + "_saved_at", new Date().toLocaleString());
+
+    alert("下書きを保存しました。公開はまだされていません。");
+  }
+
+  function loadDraft() {
+    const saved = localStorage.getItem(DRAFT_KEY);
+    const savedAt = localStorage.getItem(DRAFT_KEY + "_saved_at") || "";
+
+    if (!saved) {
+      alert("保存された下書きがありません。");
+      return;
+    }
+
+    const message = savedAt
+      ? "保存日時: " + savedAt + "\n\nこの下書きを読み込みますか？\n今の編集内容は上書きされます。"
+      : "この下書きを読み込みますか？\n今の編集内容は上書きされます。";
+
+    if (!confirm(message)) {
+      return;
+    }
+
+    const root = getEditableRoot();
+
+    if (!root) {
+      alert("読み込み先が見つかりません。");
+      return;
+    }
+
+    root.innerHTML = saved;
+
+    alert("下書きを読み込みました。");
+  }
+
+  function findTopButtonArea() {
+    const buttons = Array.from(document.querySelectorAll("button"));
+
+    const publishBtn = buttons.find(btn => {
+      return (btn.textContent || "").trim() === "公開";
+    });
+
+    if (publishBtn && publishBtn.parentElement) {
+      return publishBtn.parentElement;
+    }
+
+    const adminHeader =
+      document.querySelector("header") ||
+      document.querySelector("nav") ||
+      document.body;
+
+    return adminHeader;
+  }
+
+  function addDraftButtons() {
+    if (document.getElementById("txoDraftSaveBtn")) {
+      return;
+    }
+
+    const area = findTopButtonArea();
+
+    const saveBtn = document.createElement("button");
+    saveBtn.id = "txoDraftSaveBtn";
+    saveBtn.type = "button";
+    saveBtn.className = "txo-draft-btn";
+    saveBtn.textContent = "下書き保存";
+    saveBtn.addEventListener("click", saveDraft);
+
+    const loadBtn = document.createElement("button");
+    loadBtn.id = "txoDraftLoadBtn";
+    loadBtn.type = "button";
+    loadBtn.className = "txo-draft-btn txo-draft-load-btn";
+    loadBtn.textContent = "下書き読込";
+    loadBtn.addEventListener("click", loadDraft);
+
+    const publishBtn = Array.from(document.querySelectorAll("button")).find(btn => {
+      return (btn.textContent || "").trim() === "公開";
+    });
+
+    if (publishBtn && publishBtn.parentElement) {
+      publishBtn.parentElement.insertBefore(loadBtn, publishBtn);
+      publishBtn.parentElement.insertBefore(saveBtn, loadBtn);
+    } else {
+      area.appendChild(saveBtn);
+      area.appendChild(loadBtn);
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", addDraftButtons);
+  } else {
+    addDraftButtons();
+  }
+
+  setTimeout(addDraftButtons, 1000);
+})();
+</script>
+<!-- TXO_DRAFT_BUTTONS_END -->
 </body>
 </html>
+
 
 
 
